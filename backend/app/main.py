@@ -38,7 +38,7 @@ app = FastAPI(
 )
 
 # CORS — always allow localhost for local dev, plus any configured production origins
-_cors_origins = {"http://localhost:3000", settings.app_url}
+_cors_origins = {"http://localhost:3000", "http://localhost:3001", settings.app_url}
 if settings.extra_cors_origins:
     for _o in settings.extra_cors_origins.split(","):
         _o = _o.strip()
@@ -48,6 +48,9 @@ if settings.extra_cors_origins:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(_cors_origins),
+    # Allow all Vercel deployment URLs (preview + production) automatically.
+    # Set APP_URL or EXTRA_CORS_ORIGINS on Render for custom domains.
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
