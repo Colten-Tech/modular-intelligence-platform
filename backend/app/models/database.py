@@ -48,9 +48,11 @@ elif DATABASE_URL.startswith("postgresql://") and "asyncpg" not in DATABASE_URL:
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,
-    pool_size=10,
-    max_overflow=20,
+    pool_size=3,
+    max_overflow=5,
     pool_pre_ping=True,
+    pool_recycle=300,
+    connect_args={"ssl": "require"},
 )
 
 AsyncSessionLocal = async_sessionmaker(
