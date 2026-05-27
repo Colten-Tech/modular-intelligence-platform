@@ -1,0 +1,32 @@
+name: Run Migrations
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "supabase/migrations/**"
+  workflow_dispatch:   # also triggerable manually from the Actions tab
+
+jobs:
+  migrate:
+    name: Apply SQL migrations → Supabase
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install psql client
+        run: sudo apt-get install -y postgresql-client
+
+      - name: Apply 001_initial_schema
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          psql \
+            "postgresql://postgres.${{ secrets.SUPABASE_PROJECT_REF }}:${{ secrets.SUPABASE_DB_PASSWORD }}@aws-0-eu-central-1.pooler.supabase.com:6543/postgres" \
+            --set ON_ERROR_STOP=on \
+            -f supabase/migrations/001_initial_schema.sql
+
+      # Add more migration steps here as you add files to supabase/migrations/
+      # - name: Apply 002_...
+      #   run: psql "$DB_URL" -f supabase/migrations/002_...sql

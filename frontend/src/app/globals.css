@@ -1,0 +1,178 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-base: #080808;
+  --bg-surface: #0e0e0e;
+  --bg-elevated: #141414;
+  --bg-hover: #1a1a1a;
+  --border: #1e1e1e;
+  --border-active: #333;
+  --text-primary: #e8e4dc;
+  --text-secondary: #888;
+  --text-muted: #444;
+  --accent-b2b: #e8f04a;
+  --accent-consumer: #4af0c8;
+  --accent-health: #f04a8a;
+  --accent-sports: #a04af0;
+  --score-high: #4af04a;
+  --score-mid: #f0c84a;
+  --score-low: #f04a4a;
+  --success: #4af04a;
+  --warning: #f0c84a;
+  --error: #f04a4a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+  font-family: 'IBM Plex Mono', monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(232, 240, 74, 0.2);
+  color: var(--text-primary);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-active);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* Focus ring */
+*:focus-visible {
+  outline: 1px solid var(--border-active);
+  outline-offset: 2px;
+}
+
+/* Input base */
+input,
+textarea,
+select {
+  background-color: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--border-active);
+  outline: none;
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulseRing {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 200ms ease-out both;
+}
+
+.animate-pulse-ring {
+  animation: pulseRing 2s ease-in-out infinite;
+}
+
+/* Status dot pulse for running */
+.status-dot-running::after {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.4;
+  animation: pulseRing 2s ease-in-out infinite;
+}
+
+/* Stagger children animations */
+.stagger-children > * {
+  animation: fadeInUp 200ms ease-out both;
+}
+
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 50ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 150ms; }
+.stagger-children > *:nth-child(5) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(6) { animation-delay: 250ms; }
+.stagger-children > *:nth-child(7) { animation-delay: 300ms; }
+.stagger-children > *:nth-child(8) { animation-delay: 350ms; }
+
+/* Line clamp utilities */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}

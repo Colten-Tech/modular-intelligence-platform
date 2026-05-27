@@ -1,0 +1,75 @@
+# Koyeb deployment configuration
+# Usage: koyeb app deploy --config koyeb.yaml
+# Docs:  https://www.koyeb.com/docs/apps/deploy-from-git
+
+name: modular-intelligence-platform
+
+services:
+  - name: api
+    type: web
+
+    git:
+      # Update GITHUB_USERNAME after creating your GitHub account
+      repository: github.com/GITHUB_USERNAME/modular-intelligence-platform
+      branch: main
+
+    build:
+      dockerfile: Dockerfile
+      context: backend
+
+    ports:
+      - port: 8000
+        protocol: http
+
+    routes:
+      - path: /
+        port: 8000
+
+    checks:
+      - type: http
+        path: /health
+        port: 8000
+        interval: 60
+        timeout: 5
+        unhealthy_threshold: 3
+        healthy_threshold: 1
+
+    # Instance — use "free" for zero cost
+    instance_types:
+      - nano
+
+    scaling:
+      min_scale: 0
+      max_scale: 1
+
+    # Environment variables — set these in the Koyeb dashboard
+    # (never commit real values here)
+    env:
+      - key: PORT
+        value: "8000"
+      - key: SUPABASE_URL
+        secret: supabase-url
+      - key: SUPABASE_SERVICE_KEY
+        secret: supabase-service-key
+      - key: SUPABASE_ANON_KEY
+        secret: supabase-anon-key
+      - key: REDIS_URL
+        secret: redis-url
+      - key: ANTHROPIC_API_KEY
+        secret: anthropic-api-key
+      - key: RESEND_API_KEY
+        secret: resend-api-key
+      - key: STRIPE_SECRET_KEY
+        secret: stripe-secret-key
+      - key: STRIPE_WEBHOOK_SECRET
+        secret: stripe-webhook-secret
+      - key: STRIPE_PRICE_PRO
+        secret: stripe-price-pro
+      - key: STRIPE_PRICE_TEAM
+        secret: stripe-price-team
+      - key: APP_URL
+        secret: app-url
+      - key: API_URL
+        secret: api-url
+      - key: EXTRA_CORS_ORIGINS
+        secret: extra-cors-origins

@@ -1,0 +1,24 @@
+name: Keepalive
+
+# Koyeb nano instances can go idle after inactivity.
+# This workflow pings the health endpoint every 14 minutes so APScheduler
+# keeps running and the first real user request is never a cold start.
+
+on:
+  schedule:
+    - cron: "*/14 * * * *"   # every 14 minutes
+  workflow_dispatch:
+
+jobs:
+  ping:
+    name: Ping API health endpoint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Health check
+        run: |
+          HTTP=$(curl -s -o /dev/null -w "%{http_code}" "${{ secrets.API_URL }}/health")
+          echo "Status: $HTTP"
+          if [ "$HTTP" != "200" ]; then
+            echo "::warning::API returned $HTTP — may be starting up"
+          fi
