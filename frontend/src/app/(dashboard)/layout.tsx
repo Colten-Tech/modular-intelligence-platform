@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getSupabaseServerClient } from '@/lib/supabase'
+import { getSupabaseServerClient } from '@/lib/supabase-server'
 import { AppLayout } from '@/components/layout/AppLayout'
 
 export default async function DashboardLayout({
