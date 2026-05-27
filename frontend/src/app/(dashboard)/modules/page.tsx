@@ -66,16 +66,24 @@ export default function ModulesPage() {
       {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="flex items-end justify-between mb-8">
         <div>
-          <p className="text-[10px] text-text-muted tracking-[0.2em] uppercase mb-1">
+          <p className="text-[10px] text-text-muted tracking-[0.2em] uppercase mb-1.5">
             Intelligence Platform
           </p>
-          <h1 className="font-display text-3xl tracking-widest text-text-primary">
-            MODULE LIBRARY
+          <h1
+            className="text-4xl text-text-primary leading-none"
+            style={{
+              fontFamily: 'var(--font-serif-display), Georgia, serif',
+              fontWeight: 600,
+              letterSpacing: '0.02em',
+              color: '#f0ead8',
+            }}
+          >
+            Module Library
           </h1>
         </div>
         <div className="flex items-center gap-4 text-right">
           <div>
-            <p className="text-2xl font-display tracking-wide text-text-primary">
+            <p className="text-2xl font-display tracking-wide" style={{ color: '#f0ead8' }}>
               {isLoading ? '—' : enabledCount}
               <span className="text-text-muted text-sm font-sans">/{availableCount}</span>
             </p>
@@ -106,10 +114,16 @@ export default function ModulesPage() {
               className={cn(
                 'flex items-center gap-2 px-3.5 py-2 rounded-lg border text-xs transition-all duration-150',
                 active
-                  ? 'text-text-primary bg-bg-elevated border-border-active shadow-sm'
-                  : 'text-text-muted bg-bg-surface border-border hover:text-text-secondary hover:bg-bg-elevated hover:border-border-active'
+                  ? 'text-text-primary shadow-sm'
+                  : 'text-text-muted hover:text-text-secondary'
               )}
-              style={active && color ? { borderColor: `${color}50`, color } : undefined}
+              style={
+                active && color
+                  ? { background: '#23200f', borderColor: `${color}50`, color }
+                  : active
+                  ? { background: '#23200f', borderColor: '#3a3525' }
+                  : { background: '#1c1a13', borderColor: '#2e2a1e' }
+              }
             >
               <Icon
                 className="w-3.5 h-3.5 shrink-0"
@@ -157,11 +171,27 @@ export default function ModulesPage() {
                 className={cn(
                   'group relative flex flex-col rounded-xl border transition-all duration-200',
                   instance
-                    ? 'bg-bg-elevated border-border-active'
+                    ? 'border-border-active'
                     : locked
-                    ? 'bg-bg-surface border-border opacity-70'
-                    : 'bg-bg-surface border-border hover:bg-bg-elevated hover:border-border-active hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/20'
+                    ? 'border-border opacity-70'
+                    : 'border-border hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/30'
                 )}
+                style={{
+                  background: instance ? '#23200f' : locked ? '#1a1810' : '#1c1a13',
+                  borderColor: instance
+                    ? `${clusterColor}40`
+                    : locked
+                    ? '#2e2a1e'
+                    : undefined,
+                }}
+                onMouseEnter={!instance && !locked ? (e) => {
+                  (e.currentTarget as HTMLElement).style.background = '#23200f';
+                  (e.currentTarget as HTMLElement).style.borderColor = '#3a3525';
+                } : undefined}
+                onMouseLeave={!instance && !locked ? (e) => {
+                  (e.currentTarget as HTMLElement).style.background = '#1c1a13';
+                  (e.currentTarget as HTMLElement).style.borderColor = '';
+                } : undefined}
               >
                 {/* Top color bar */}
                 <div
@@ -211,7 +241,7 @@ export default function ModulesPage() {
                   </p>
 
                   {/* Divider */}
-                  <div className="h-px bg-border my-4" />
+                  <div className="h-px my-4" style={{ background: '#2e2a1e' }} />
 
                   {/* Action */}
                   {instance ? (
