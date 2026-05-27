@@ -73,8 +73,8 @@ async def get_current_user(
     algorithm = unverified_header.get("alg", "HS256")
 
     try:
-        if algorithm.startswith("RS"):
-            # RS256 — verify with Supabase public key from JWKS endpoint
+        if algorithm.startswith("RS") or algorithm.startswith("ES"):
+            # RS256 / ES256 (ECC P-256, current Supabase default) — verify via JWKS
             kid = unverified_header.get("kid")
             try:
                 jwks = await _get_jwks()
@@ -85,7 +85,7 @@ async def get_current_user(
             if jwks and kid:
                 raw_key = _get_rsa_key(jwks, kid)
                 if raw_key is None:
-                    # Key not found — cache might be stale, try a fresh fetch
+                    # Key not found — cache might be stale, bust and retry once
                     global _jwks_cache
                     _jwks_cache = None
                     try:
@@ -100,7 +100,13 @@ async def get_current_user(
                         detail={"error": "Unknown token key id", "code": "AUTH_UNKNOWN_KID", "details": {}},
                     )
 
-                public_key = jwt.algorithms.RSAAlgorithm.from_jwk(raw_key)
+                # Load the public key using the correct algorithm class
+                key_type = raw_key.get("kty", "RSA")
+                if key_type == "EC":
+                    public_key = jwt.algorithms.ECAlgorithm.from_jwk(raw_key)
+                else:
+                    public_key = jwt.algorithms.RSAAlgorithm.from_jwk(raw_key)
+
                 payload = jwt.decode(
                     token,
                     public_key,
@@ -109,7 +115,6 @@ async def get_current_user(
                 )
             else:
                 # JWKS unavailable — fall back to HS256 with JWT secret if configured
-                _verify_hs256(token)
                 payload = jwt.decode(
                     token,
                     _get_hs256_secret(),
@@ -117,7 +122,9 @@ async def get_current_user(
                     options={"verify_aud": False},
                 )
         else:
-            # HS256 — Supabase signs user JWTs with the project JWT Secret
+            # HS256 — Supabase legacy path, signed with the project JWT Secret
+            # (NOT the anon key — the JWT Secret is found at:
+            #  Supabase Dashboard → Project Settings → API → JWT Keys → Legacy JWT Secret)
             payload = jwt.decode(
                 token,
                 _get_hs256_secret(),
