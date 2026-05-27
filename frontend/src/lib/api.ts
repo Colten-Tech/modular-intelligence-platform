@@ -62,11 +62,36 @@ function buildQuery(params: Record<string, unknown>): string {
 }
 
 // Modules
+// Backend returns a flat List[ModuleInfo] — each item contains both definition
+// fields and optional instance fields. We split them into two arrays here.
+type RawModuleInfo = ModuleDefinition & {
+  enabled: boolean
+  instance_id: string | null
+  instance_config: Record<string, unknown> | null
+}
+
 export async function getModules(): Promise<{
   definitions: ModuleDefinition[]
   instances: ModuleInstance[]
 }> {
-  return request('/api/modules')
+  const raw = await request<RawModuleInfo[]>('/api/modules')
+
+  const definitions: ModuleDefinition[] = raw.map(
+    ({ enabled: _e, instance_id: _i, instance_config: _c, ...def }) => def
+  )
+
+  const instances: ModuleInstance[] = raw
+    .filter((m) => m.instance_id != null)
+    .map((m) => ({
+      id: m.instance_id!,
+      user_id: '',
+      module_type: m.module_id,
+      config: m.instance_config ?? {},
+      enabled: m.enabled,
+      created_at: '',
+    }))
+
+  return { definitions, instances }
 }
 
 export async function enableModule(
