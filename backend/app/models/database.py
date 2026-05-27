@@ -148,7 +148,7 @@ class Signal(Base):
     body = Column(Text, nullable=False)
     score = Column(Float, nullable=False, default=0.5)
     source_url = Column(Text)
-    metadata = Column(JSONB, server_default=text("'{}'::jsonb"))
+    meta = Column("metadata", JSONB, server_default=text("'{}'::jsonb"))
     created_at = Column(DateTime(timezone=True), server_default=text("now()"))
     read = Column(Boolean, nullable=False, server_default=text("false"))
     archived = Column(Boolean, nullable=False, server_default=text("false"))
@@ -178,7 +178,7 @@ class Embedding(Base):
     chunk_text = Column(Text, nullable=False)
     # vector(1536) — represented as JSONB for portability; use pgvector extension in prod
     embedding = Column(JSONB)
-    metadata = Column(JSONB, server_default=text("'{}'::jsonb"))
+    meta = Column("metadata", JSONB, server_default=text("'{}'::jsonb"))
 
     module = relationship("Module", back_populates="embeddings")
 
@@ -228,7 +228,7 @@ class GrantMatch(Base):
     relevance_score = Column(Float)
     url = Column(Text)
     description = Column(Text)
-    metadata = Column(JSONB, server_default=text("'{}'::jsonb"))
+    meta = Column("metadata", JSONB, server_default=text("'{}'::jsonb"))
     created_at = Column(DateTime(timezone=True), server_default=text("now()"))
 
 

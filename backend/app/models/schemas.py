@@ -68,13 +68,15 @@ class SignalResponse(BaseModel):
     body: str
     score: float
     source_url: Optional[str] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    # ORM column is `meta` (avoids SQLAlchemy reserved `metadata`);
+    # validation_alias reads from `.meta` on the ORM object, serialises as `metadata`.
+    metadata: Dict[str, Any] = Field(default_factory=dict, validation_alias="meta")
     created_at: datetime
     read: bool
     archived: bool
     module_type: Optional[str] = None
 
-    model_config = {"from_attributes": True}
+    model_config = {"from_attributes": True, "populate_by_name": True}
 
 
 class SignalListResponse(BaseModel):

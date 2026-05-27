@@ -80,7 +80,7 @@ async def execute_module_job(module_instance_id: str) -> Optional[str]:
                 # Check for existing signal with same hash
                 dup_stmt = select(SignalModel).where(
                     SignalModel.module_id == module_row.id,
-                    SignalModel.metadata["content_hash"].astext == content_hash,
+                    SignalModel.meta["content_hash"].astext == content_hash,
                 )
                 dup_result = await db.execute(dup_stmt)
                 existing = dup_result.scalar_one_or_none()
@@ -100,7 +100,7 @@ async def execute_module_job(module_instance_id: str) -> Optional[str]:
                     body=sig.body,
                     score=max(0.0, min(1.0, sig.score)),
                     source_url=sig.source_url,
-                    metadata=metadata,
+                    meta=metadata,
                     created_at=datetime.now(timezone.utc),
                     read=False,
                     archived=False,
