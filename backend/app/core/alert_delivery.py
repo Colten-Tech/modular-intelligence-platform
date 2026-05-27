@@ -122,8 +122,8 @@ async def _send_webhook_alert(signal, user) -> bool:
     # Fetch user's webhook URL from their settings (stored in user metadata)
     # For now, read from signal metadata if present, or user record
     webhook_url = None
-    if signal.metadata:
-        webhook_url = signal.metadata.get("webhook_url")
+    if signal.meta:
+        webhook_url = signal.meta.get("webhook_url")
 
     if not webhook_url:
         logger.warning(f"No webhook URL configured for user {user.id}")
@@ -137,7 +137,7 @@ async def _send_webhook_alert(signal, user) -> bool:
             "body": signal.body,
             "score": signal.score,
             "source_url": signal.source_url,
-            "metadata": signal.metadata,
+            "metadata": signal.meta,
             "created_at": signal.created_at.isoformat() if signal.created_at else None,
         },
         "user_id": str(user.id),

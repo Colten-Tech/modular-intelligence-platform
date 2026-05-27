@@ -1,8 +1,8 @@
 name: Keepalive
 
-# Koyeb nano instances can go idle after inactivity.
-# This workflow pings the health endpoint every 14 minutes so APScheduler
-# keeps running and the first real user request is never a cold start.
+# Render free-tier instances sleep after ~15 min of inactivity.
+# This workflow pings the health endpoint every 14 minutes so the backend
+# stays warm and the first real user request is never a cold start.
 
 on:
   schedule:

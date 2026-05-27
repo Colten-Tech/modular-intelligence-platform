@@ -90,7 +90,7 @@ def sync_all_schedules():
                 mod_def = module_registry.get_module(mod_row.module_type)
                 if mod_def is None:
                     continue
-                schedule = mod_row.schedule or mod_def.default_schedule
+                schedule = mod_def.default_schedule
                 scheduler_instance.schedule_module(
                     str(mod_row.id),
                     mod_row.module_type,
