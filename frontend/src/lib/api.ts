@@ -9,6 +9,8 @@ import type {
   PaginatedResponse,
   SignalFilters,
   JobFilters,
+  AdminUserRow,
+  AdminOverview,
 } from '@/types'
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
@@ -180,5 +182,28 @@ export async function createCheckoutSession(plan: string): Promise<{ url: string
   return request('/api/billing/checkout', {
     method: 'POST',
     body: JSON.stringify({ plan }),
+  })
+}
+
+// Admin
+export async function getAdminOverview(): Promise<AdminOverview> {
+  return request('/api/admin/overview')
+}
+
+export async function getAdminUsers(): Promise<AdminUserRow[]> {
+  return request('/api/admin/users')
+}
+
+export async function adminUpdatePlan(userId: string, plan: string): Promise<AdminUserRow> {
+  return request(`/api/admin/users/${userId}/plan`, {
+    method: 'PATCH',
+    body: JSON.stringify({ plan }),
+  })
+}
+
+export async function adminToggleAdmin(userId: string, isAdmin: boolean): Promise<AdminUserRow> {
+  return request(`/api/admin/users/${userId}/admin`, {
+    method: 'PATCH',
+    body: JSON.stringify({ is_admin: isAdmin }),
   })
 }

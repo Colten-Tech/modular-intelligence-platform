@@ -88,6 +88,7 @@ class User(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email = Column(Text, nullable=False, unique=True)
     plan = Column(Text, nullable=False, server_default="free")
+    is_admin = Column(Boolean, nullable=False, server_default=text("false"))
     created_at = Column(DateTime(timezone=True), server_default=text("now()"))
 
     modules = relationship("Module", back_populates="user", cascade="all, delete-orphan")

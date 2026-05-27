@@ -20,6 +20,7 @@ import {
   LogOut,
   User,
   Code2,
+  ShieldCheck,
 } from 'lucide-react'
 import { getSupabaseBrowserClient } from '@/lib/supabase'
 import { toast } from 'sonner'
@@ -118,6 +119,28 @@ export function Sidebar() {
               </li>
             )
           })}
+          {/* Admin link — only visible to admins */}
+          {user?.is_admin && (() => {
+            const active = pathname.startsWith('/admin')
+            return (
+              <li>
+                <Link
+                  href="/admin"
+                  className={cn(
+                    'flex items-center gap-2.5 px-2 py-1.5 rounded text-xs transition-all duration-100',
+                    active
+                      ? 'text-accent-b2b bg-bg-hover border-l-2 border-l-accent-b2b pl-[6px]'
+                      : 'text-text-muted hover:text-accent-b2b hover:bg-bg-hover border-l-2 border-l-transparent pl-[6px]',
+                    sidebarCollapsed && 'justify-center px-0 border-l-0 pl-0'
+                  )}
+                  title={sidebarCollapsed ? 'Admin' : undefined}
+                >
+                  <ShieldCheck className="w-3.5 h-3.5 shrink-0" />
+                  {!sidebarCollapsed && <span>Admin</span>}
+                </Link>
+              </li>
+            )
+          })()}
         </ul>
 
         {/* Active modules */}

@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.core.scheduler import scheduler_instance
 from app.core.module_registry import module_registry
-from app.api import modules, signals, jobs, user, billing
+from app.api import modules, signals, jobs, user, billing, admin
 
 logging.basicConfig(
     level=logging.INFO,
@@ -59,6 +59,7 @@ app.include_router(signals.router, prefix="/api", tags=["signals"])
 app.include_router(jobs.router, prefix="/api", tags=["jobs"])
 app.include_router(user.router, prefix="/api", tags=["user"])
 app.include_router(billing.router, prefix="/api", tags=["billing"])
+app.include_router(admin.router, prefix="/api", tags=["admin"])
 
 
 @app.get("/health", tags=["health"])

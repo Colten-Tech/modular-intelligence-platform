@@ -8,7 +8,28 @@ export interface User {
   id: string
   email: string
   plan: Plan
+  is_admin: boolean
   created_at: string
+}
+
+export interface AdminUserRow {
+  id: string
+  email: string
+  plan: Plan
+  is_admin: boolean
+  created_at: string
+  module_count: number
+  signal_count: number
+}
+
+export interface AdminOverview {
+  total_users: number
+  total_signals: number
+  total_jobs: number
+  active_modules: number
+  jobs_last_24h: number
+  signals_last_24h: number
+  users_by_plan: Record<string, number>
 }
 
 export interface ModuleDefinition {

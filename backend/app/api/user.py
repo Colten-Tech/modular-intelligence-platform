@@ -31,6 +31,26 @@ def _default_settings() -> Dict[str, Any]:
     }
 
 
+@router.get("/user/me")
+async def get_me(
+    current_user: dict = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Return DB-level user info including is_admin."""
+    user_id = uuid.UUID(current_user["id"])
+    result = await db.execute(select(User).where(User.id == user_id))
+    db_user = result.scalar_one_or_none()
+    if db_user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return {
+        "id": str(db_user.id),
+        "email": db_user.email,
+        "plan": db_user.plan,
+        "is_admin": db_user.is_admin,
+        "created_at": db_user.created_at.isoformat() if db_user.created_at else "",
+    }
+
+
 @router.get("/stats", response_model=UserStats)
 @router.get("/user/stats", response_model=UserStats)
 async def get_user_stats(
