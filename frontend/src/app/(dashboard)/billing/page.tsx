@@ -10,7 +10,7 @@ import { Check, ExternalLink, Loader2, Zap, Crown, Building2 } from 'lucide-reac
 import { toast } from 'sonner'
 import type { Plan } from '@/types'
 
-const PLAN_ICONS: Record<Plan, React.ComponentType<{ className?: string }>> = {
+const PLAN_ICONS: Record<Plan, React.ComponentType<{ className?: string; style?: React.CSSProperties }>> = {
   free: Zap,
   pro: Crown,
   team: Building2,
