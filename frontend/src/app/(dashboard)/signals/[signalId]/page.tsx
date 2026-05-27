@@ -54,6 +54,7 @@ export default function SignalDetailPage() {
   const clusterLabel = signal.cluster ? CLUSTER_LABELS[signal.cluster] : signal.module_type ?? '—'
 
   function handleExport() {
+    if (!signal) return
     const content = JSON.stringify(signal, null, 2)
     const blob = new Blob([content], { type: 'application/json' })
     const url = URL.createObjectURL(blob)

@@ -99,7 +99,7 @@ export function TrendChart({
           width={32}
         />
         <Tooltip
-          content={(props) => (
+          content={(props: TooltipProps<number, string>) => (
             <CustomTooltip
               {...props}
               chartLabel={label}

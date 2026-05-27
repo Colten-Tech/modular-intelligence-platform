@@ -25,13 +25,9 @@ function buildZodSchema(schema: JSONSchema): z.ZodObject<z.ZodRawShape> {
     let field: z.ZodTypeAny
 
     if (prop.type === 'string') {
-      let s = z.string()
-      if (prop.format === 'url') s = s.url('Must be a valid URL').or(z.literal(''))
-      if (!isRequired) {
-        field = s.optional()
-      } else {
-        field = s
-      }
+      let s: z.ZodTypeAny = z.string()
+      if (prop.format === 'url') s = z.string().url('Must be a valid URL').or(z.literal(''))
+      field = isRequired ? s : s.optional()
     } else if (prop.type === 'number') {
       let n = z.number()
       if (prop.minimum !== undefined) n = n.min(prop.minimum)
