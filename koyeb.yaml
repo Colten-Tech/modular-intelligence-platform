@@ -10,7 +10,7 @@ services:
 
     git:
       # Update GITHUB_USERNAME after creating your GitHub account
-      repository: github.com/GITHUB_USERNAME/modular-intelligence-platform
+      repository: github.com/Colten-Tech/modular-intelligence-platform
       branch: main
 
     build:
