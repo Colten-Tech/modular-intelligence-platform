@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     supabase_service_key: str
     supabase_anon_key: str
     redis_url: str = "redis://localhost:6379"
-    anthropic_api_key: str
+    groq_api_key: str
     resend_api_key: str
     stripe_secret_key: str
     stripe_webhook_secret: str

@@ -2,23 +2,21 @@ import json
 import logging
 from typing import Any, Optional
 
-import anthropic
+from groq import AsyncGroq
 
 logger = logging.getLogger(__name__)
 
-MODEL_ID = "claude-sonnet-4-5-20251001"
+MODEL_ID = "llama-3.3-70b-versatile"
 MAX_TOKENS_LIMIT = 80_000
-# Rough estimate: 1 token ≈ 4 chars
 _CHARS_PER_TOKEN = 4
 
 
 class LLMExtractor:
     def __init__(self):
-        self.client = anthropic.AsyncAnthropic()
+        self.client = AsyncGroq()   # reads GROQ_API_KEY from env automatically
 
     def _estimate_tokens(self, *texts: str) -> int:
-        total_chars = sum(len(t) for t in texts)
-        return total_chars // _CHARS_PER_TOKEN
+        return sum(len(t) for t in texts) // _CHARS_PER_TOKEN
 
     async def extract_structured(
         self,
@@ -27,141 +25,96 @@ class LLMExtractor:
         system_prompt: str,
     ) -> dict:
         """
-        Call Claude with tool_use for structured extraction.
+        Call Llama 3.3 70B via Groq with JSON mode for structured extraction.
         Returns a validated dict matching the provided JSON schema.
-        Falls back to {} if the output is malformed.
-        Refuses if estimated token count > 80k.
+        Falls back to {} if the output is malformed or the API is unavailable.
         """
-        estimated_tokens = self._estimate_tokens(content, system_prompt, json.dumps(schema))
-        if estimated_tokens > MAX_TOKENS_LIMIT:
-            logger.warning(
-                f"Content too large for structured extraction: ~{estimated_tokens} tokens estimated. Skipping."
-            )
+        if self._estimate_tokens(content, system_prompt, json.dumps(schema)) > MAX_TOKENS_LIMIT:
+            logger.warning("Content too large for structured extraction — skipping LLM call")
             return {}
-
-        tool_name = "extract_data"
-        tool_definition = {
-            "name": tool_name,
-            "description": "Extract structured data from the provided content according to the schema.",
-            "input_schema": schema,
-        }
 
         try:
-            response = await self.client.messages.create(
+            response = await self.client.chat.completions.create(
                 model=MODEL_ID,
-                max_tokens=4096,
-                system=system_prompt,
-                tools=[tool_definition],
-                tool_choice={"type": "tool", "name": tool_name},
+                temperature=0,
+                response_format={"type": "json_object"},
                 messages=[
                     {
+                        "role": "system",
+                        "content": (
+                            f"{system_prompt}\n\n"
+                            f"Respond ONLY with a valid JSON object that matches this schema:\n"
+                            f"{json.dumps(schema, indent=2)}"
+                        ),
+                    },
+                    {
                         "role": "user",
-                        "content": f"Extract structured data from the following content:\n\n{content}",
-                    }
+                        "content": f"Extract structured data from the following content:\n\n{content[:60_000]}",
+                    },
                 ],
             )
+            raw = response.choices[0].message.content or "{}"
+            return json.loads(raw)
 
-            # Find the tool_use block
-            for block in response.content:
-                if block.type == "tool_use" and block.name == tool_name:
-                    return block.input or {}
-
-            logger.warning("LLM did not return a tool_use block")
-            return {}
-
-        except anthropic.APIError as exc:
-            logger.error(f"Anthropic API error in extract_structured: {exc}")
+        except json.JSONDecodeError as exc:
+            logger.error(f"LLM returned invalid JSON: {exc}")
             return {}
         except Exception as exc:
-            logger.error(f"Unexpected error in extract_structured: {exc}")
+            logger.error(f"Groq API error in extract_structured: {exc}")
             return {}
 
     async def semantic_diff(self, old_content: str, new_content: str) -> dict:
         """
-        Ask Claude what changed semantically between old and new content.
+        Ask the LLM what changed semantically between old and new content.
         Returns {changed: bool, summary: str, change_type: str}.
         """
-        estimated_tokens = self._estimate_tokens(old_content, new_content)
-        if estimated_tokens > MAX_TOKENS_LIMIT:
-            # Truncate to fit
-            max_chars = (MAX_TOKENS_LIMIT // 2) * _CHARS_PER_TOKEN
-            old_content = old_content[:max_chars]
-            new_content = new_content[:max_chars]
-            logger.warning("Content truncated for semantic_diff due to size")
-
-        tool_definition = {
-            "name": "semantic_diff_result",
-            "description": "Return the semantic diff analysis result.",
-            "input_schema": {
-                "type": "object",
-                "properties": {
-                    "changed": {
-                        "type": "boolean",
-                        "description": "Whether meaningful content has changed",
-                    },
-                    "summary": {
-                        "type": "string",
-                        "description": "Human-readable summary of what changed",
-                    },
-                    "change_type": {
-                        "type": "string",
-                        "description": "Type of change: price_change, content_update, new_section, removal, no_change",
-                        "enum": ["price_change", "content_update", "new_section", "removal", "no_change"],
-                    },
+        diff_schema = {
+            "type": "object",
+            "properties": {
+                "changed":     {"type": "boolean"},
+                "summary":     {"type": "string"},
+                "change_type": {
+                    "type": "string",
+                    "enum": ["price_change", "content_update", "new_section", "removal", "no_change"],
                 },
-                "required": ["changed", "summary", "change_type"],
             },
+            "required": ["changed", "summary", "change_type"],
         }
 
-        system_prompt = (
-            "You are a content diff analyzer. Compare the OLD and NEW versions of a webpage or document "
-            "and identify meaningful semantic changes. Ignore trivial formatting differences. "
-            "Focus on: price changes, new features, removed features, organizational changes, and key updates."
+        system = (
+            "You are a content diff analyzer. Compare OLD and NEW versions of a document and "
+            "identify meaningful semantic changes. Ignore trivial formatting differences. "
+            "Focus on: price changes, new features, removals, and key updates. "
+            f"Respond with JSON matching this schema: {json.dumps(diff_schema)}"
         )
 
-        user_message = f"OLD VERSION:\n{old_content[:15000]}\n\nNEW VERSION:\n{new_content[:15000]}"
-
         try:
-            response = await self.client.messages.create(
+            response = await self.client.chat.completions.create(
                 model=MODEL_ID,
-                max_tokens=1024,
-                system=system_prompt,
-                tools=[tool_definition],
-                tool_choice={"type": "tool", "name": "semantic_diff_result"},
-                messages=[{"role": "user", "content": user_message}],
+                temperature=0,
+                response_format={"type": "json_object"},
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": f"OLD:\n{old_content[:10_000]}\n\nNEW:\n{new_content[:10_000]}"},
+                ],
             )
-
-            for block in response.content:
-                if block.type == "tool_use" and block.name == "semantic_diff_result":
-                    return block.input or {"changed": False, "summary": "No data", "change_type": "no_change"}
-
-            return {"changed": False, "summary": "Could not analyze", "change_type": "no_change"}
-
+            return json.loads(response.choices[0].message.content or "{}")
         except Exception as exc:
             logger.error(f"semantic_diff error: {exc}")
             return {"changed": False, "summary": f"Analysis failed: {exc}", "change_type": "no_change"}
 
     async def analyze_text(self, prompt: str, content: str, max_tokens: int = 2048) -> str:
-        """
-        Simple free-form text analysis. Returns the assistant's text response.
-        """
-        estimated_tokens = self._estimate_tokens(prompt, content)
-        if estimated_tokens > MAX_TOKENS_LIMIT:
+        """Free-form text analysis. Returns the assistant's text response."""
+        if self._estimate_tokens(prompt, content) > MAX_TOKENS_LIMIT:
             content = content[: MAX_TOKENS_LIMIT * _CHARS_PER_TOKEN // 2]
 
         try:
-            response = await self.client.messages.create(
+            response = await self.client.chat.completions.create(
                 model=MODEL_ID,
                 max_tokens=max_tokens,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": f"{prompt}\n\n{content}",
-                    }
-                ],
+                messages=[{"role": "user", "content": f"{prompt}\n\n{content}"}],
             )
-            text_blocks = [b.text for b in response.content if hasattr(b, "text")]
-            return "\n".join(text_blocks)
+            return response.choices[0].message.content or ""
         except Exception as exc:
             logger.error(f"analyze_text error: {exc}")
             return ""
