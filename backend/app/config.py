@@ -5,6 +5,10 @@ class Settings(BaseSettings):
     supabase_url: str
     supabase_service_key: str
     supabase_anon_key: str
+    # JWT secret from Supabase Dashboard → Project Settings → API → JWT Settings → JWT Secret
+    # Required for HS256 token verification (Supabase default). For RS256 projects this
+    # is not strictly needed (JWKS is used instead), but it makes the fallback path work.
+    supabase_jwt_secret: str = ""
     redis_url: str = "redis://localhost:6379"
     groq_api_key: str
     resend_api_key: str
