@@ -32,18 +32,20 @@ import os
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 if not DATABASE_URL:
-    # Build from Supabase URL — replace https:// with postgresql+asyncpg://
-    # and append the standard Supabase DB path.
-    # Format: postgresql+asyncpg://postgres:{SERVICE_KEY}@{PROJECT_REF}.supabase.co:5432/postgres
     project_ref = settings.supabase_url.replace("https://", "").split(".")[0]
     DATABASE_URL = (
         f"postgresql+asyncpg://postgres:{settings.supabase_service_key}"
-        f"@{project_ref}.supabase.co:5432/postgres"
+        f"@db.{project_ref}.supabase.co:5432/postgres"
     )
 elif DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
 elif DATABASE_URL.startswith("postgresql://") and "asyncpg" not in DATABASE_URL:
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
+
+# Append ssl=require via URL query param — the correct way for asyncpg.
+# connect_args={"ssl": "require"} is NOT valid for asyncpg (needs SSLContext or bool).
+if "ssl=" not in DATABASE_URL:
+    DATABASE_URL += ("&" if "?" in DATABASE_URL else "?") + "ssl=require"
 
 engine = create_async_engine(
     DATABASE_URL,
@@ -52,7 +54,6 @@ engine = create_async_engine(
     max_overflow=5,
     pool_pre_ping=True,
     pool_recycle=300,
-    connect_args={"ssl": "require"},
 )
 
 AsyncSessionLocal = async_sessionmaker(
