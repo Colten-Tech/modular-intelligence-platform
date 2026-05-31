@@ -370,8 +370,11 @@ export function SetupWizard({ module, onClose, onSuccess }: SetupWizardProps) {
             {step === 0 ? 'Cancel' : 'Back'}
           </button>
 
-          {/* Step 1 and 2 have their own submit buttons inside the form */}
-          {step !== 1 && step !== 2 && (
+          {/* Steps 1 and 2 use a form's own submit button when fields exist.
+              When there are no fields the form is not rendered, so we fall
+              back to showing the standard Next button here instead. */}
+          {!(step === 1 && dataSrcKeys.length > 0) &&
+           !(step === 2 && filterKeys.length > 0) && (
             <button
               onClick={() => {
                 if (step === STEPS.length - 1) {
