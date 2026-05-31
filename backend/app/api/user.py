@@ -36,12 +36,28 @@ async def get_me(
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    """Return DB-level user info including is_admin."""
+    """Return DB-level user info including is_admin.
+
+    Auto-creates the user row on first login so the DB stays in sync with
+    Supabase Auth — this is safe to call multiple times (upsert behaviour).
+    """
     user_id = uuid.UUID(current_user["id"])
     result = await db.execute(select(User).where(User.id == user_id))
     db_user = result.scalar_one_or_none()
+
     if db_user is None:
-        raise HTTPException(status_code=404, detail="User not found")
+        # First time this user has hit the API — create their DB row.
+        db_user = User(
+            id=user_id,
+            email=current_user.get("email", ""),
+            plan="free",
+            is_admin=False,
+        )
+        db.add(db_user)
+        await db.commit()
+        await db.refresh(db_user)
+        logger.info(f"Auto-created user row for {db_user.email}")
+
     return {
         "id": str(db_user.id),
         "email": db_user.email,
