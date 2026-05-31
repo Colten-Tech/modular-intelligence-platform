@@ -32,10 +32,16 @@ import os
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 if not DATABASE_URL:
+    # Fallback: use Supabase session pooler (accessible from any IP, no allowlist needed).
+    # Direct connection (db.{ref}.supabase.co:5432) is blocked from cloud providers
+    # unless the source IP is explicitly allowlisted in Supabase Network Restrictions.
     project_ref = settings.supabase_url.replace("https://", "").split(".")[0]
+    # Derive region from SUPABASE_URL — eu-west-1 projects use aws-0-eu-west-1.pooler.supabase.com
+    # Default to eu-west-1; override DATABASE_URL env var if you're in a different region.
+    _pooler_host = f"aws-0-eu-west-1.pooler.supabase.com"
     DATABASE_URL = (
-        f"postgresql+asyncpg://postgres:{settings.supabase_service_key}"
-        f"@db.{project_ref}.supabase.co:5432/postgres"
+        f"postgresql+asyncpg://postgres.{project_ref}:{settings.supabase_service_key}"
+        f"@{_pooler_host}:5432/postgres"
     )
 elif DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
@@ -47,6 +53,11 @@ elif DATABASE_URL.startswith("postgresql://") and "asyncpg" not in DATABASE_URL:
 if "ssl=" not in DATABASE_URL:
     DATABASE_URL += ("&" if "?" in DATABASE_URL else "?") + "ssl=require"
 
+# Detect transaction pooler (port 6543) — it doesn't support prepared statements.
+_connect_args: dict = {}
+if ":6543/" in DATABASE_URL:
+    _connect_args["statement_cache_size"] = 0
+
 engine = create_async_engine(
     DATABASE_URL,
     echo=False,
@@ -54,6 +65,7 @@ engine = create_async_engine(
     max_overflow=5,
     pool_pre_ping=True,
     pool_recycle=300,
+    connect_args=_connect_args,
 )
 
 AsyncSessionLocal = async_sessionmaker(
