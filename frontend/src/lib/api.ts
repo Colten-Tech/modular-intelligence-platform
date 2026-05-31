@@ -98,9 +98,9 @@ export async function enableModule(
   moduleId: string,
   config: Record<string, unknown>
 ): Promise<ModuleInstance> {
-  return request('/api/modules', {
+  return request(`/api/modules/${moduleId}/enable`, {
     method: 'POST',
-    body: JSON.stringify({ module_type: moduleId, config }),
+    body: JSON.stringify({ config }),
   })
 }
 
@@ -108,8 +108,8 @@ export async function updateModuleConfig(
   instanceId: string,
   config: Record<string, unknown>
 ): Promise<ModuleInstance> {
-  return request(`/api/modules/${instanceId}`, {
-    method: 'PATCH',
+  return request(`/api/modules/${instanceId}/config`, {
+    method: 'PUT',
     body: JSON.stringify({ config }),
   })
 }

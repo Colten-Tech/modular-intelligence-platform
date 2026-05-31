@@ -137,27 +137,24 @@ async def enable_module(
     return ModuleResponse.model_validate(module_row)
 
 
-@router.put("/modules/{module_id}/config", response_model=ModuleResponse)
+@router.put("/modules/{instance_id}/config", response_model=ModuleResponse)
 async def update_module_config(
-    module_id: str,
+    instance_id: str,
     body: ModuleConfigUpdate,
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Update config for an enabled module."""
-    mod = module_registry.get_module(module_id)
-    if mod is None:
-        raise HTTPException(status_code=404, detail=_ERR(f"Module '{module_id}' not found", "MODULE_NOT_FOUND"))
-
+    """Update config for an enabled module (addressed by instance UUID)."""
     user_id = uuid.UUID(current_user["id"])
-    stmt = select(Module).where(Module.user_id == user_id, Module.module_type == module_id, Module.enabled == True)
+    stmt = select(Module).where(Module.id == uuid.UUID(instance_id), Module.user_id == user_id)
     result = await db.execute(stmt)
     module_row = result.scalar_one_or_none()
 
     if module_row is None:
-        raise HTTPException(status_code=404, detail=_ERR("Module not enabled for this user", "MODULE_NOT_ENABLED"))
+        raise HTTPException(status_code=404, detail=_ERR("Module not found", "MODULE_NOT_FOUND"))
 
-    if not mod.validate_config(body.config):
+    mod = module_registry.get_module(module_row.module_type)
+    if mod and not mod.validate_config(body.config):
         raise HTTPException(status_code=422, detail=_ERR("Invalid configuration", "INVALID_CONFIG"))
 
     module_row.config = body.config
@@ -166,29 +163,29 @@ async def update_module_config(
     return ModuleResponse.model_validate(module_row)
 
 
-@router.post("/modules/{module_id}/run", status_code=status.HTTP_202_ACCEPTED)
+@router.post("/modules/{instance_id}/run", status_code=status.HTTP_202_ACCEPTED)
 async def trigger_module_run(
-    module_id: str,
+    instance_id: str,
     background_tasks: BackgroundTasks,
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Trigger an immediate module run in the background."""
+    """Trigger an immediate module run in the background (addressed by instance UUID)."""
     user_id = uuid.UUID(current_user["id"])
-    stmt = select(Module).where(Module.user_id == user_id, Module.module_type == module_id, Module.enabled == True)
+    stmt = select(Module).where(Module.id == uuid.UUID(instance_id), Module.user_id == user_id, Module.enabled == True)
     result = await db.execute(stmt)
     module_row = result.scalar_one_or_none()
 
     if module_row is None:
-        raise HTTPException(status_code=404, detail=_ERR("Module not enabled for this user", "MODULE_NOT_ENABLED"))
+        raise HTTPException(status_code=404, detail=_ERR("Module not found or not enabled", "MODULE_NOT_ENABLED"))
 
     background_tasks.add_task(execute_module_job, str(module_row.id))
     return {"message": "Module run triggered", "module_instance_id": str(module_row.id)}
 
 
-@router.get("/modules/{module_id}/signals", response_model=SignalListResponse)
+@router.get("/modules/{instance_id}/signals", response_model=SignalListResponse)
 async def get_module_signals(
-    module_id: str,
+    instance_id: str,
     page: int = 1,
     limit: int = 20,
     unread_only: bool = False,
@@ -196,13 +193,13 @@ async def get_module_signals(
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get paginated signals for a specific module."""
+    """Get paginated signals for a specific module (addressed by instance UUID)."""
     user_id = uuid.UUID(current_user["id"])
 
     # Verify module ownership
     mod_stmt = select(Module).where(
+        Module.id == uuid.UUID(instance_id),
         Module.user_id == user_id,
-        Module.module_type == module_id,
     )
     mod_result = await db.execute(mod_stmt)
     module_row = mod_result.scalar_one_or_none()
@@ -237,24 +234,21 @@ async def get_module_signals(
     )
 
 
-@router.get("/modules/{module_id}/status", response_model=ModuleStatusResponse)
+@router.get("/modules/{instance_id}/status", response_model=ModuleStatusResponse)
 async def get_module_status(
-    module_id: str,
+    instance_id: str,
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Get last run, next run, and job counts for a module."""
+    """Get last run, next run, and job counts for a module (addressed by instance UUID)."""
     user_id = uuid.UUID(current_user["id"])
 
-    stmt = select(Module).where(Module.user_id == user_id, Module.module_type == module_id)
+    stmt = select(Module).where(Module.id == uuid.UUID(instance_id), Module.user_id == user_id)
     result = await db.execute(stmt)
     module_row = result.scalar_one_or_none()
 
     if module_row is None:
-        mod = module_registry.get_module(module_id)
-        if mod is None:
-            raise HTTPException(status_code=404, detail=_ERR("Module not found", "MODULE_NOT_FOUND"))
-        return ModuleStatusResponse(module_id=module_id, enabled=False)
+        raise HTTPException(status_code=404, detail=_ERR("Module not found", "MODULE_NOT_FOUND"))
 
     # Job stats
     jobs_stmt = select(Job).where(Job.module_id == module_row.id).order_by(Job.started_at.desc())
@@ -279,7 +273,7 @@ async def get_module_status(
     next_run = datetime.fromisoformat(next_run_str) if next_run_str else None
 
     return ModuleStatusResponse(
-        module_id=module_id,
+        module_id=module_row.module_type,
         instance_id=module_row.id,
         enabled=module_row.enabled,
         last_run=last_run,
@@ -291,15 +285,15 @@ async def get_module_status(
     )
 
 
-@router.post("/modules/{module_id}/pause", response_model=ModuleResponse)
+@router.post("/modules/{instance_id}/pause", response_model=ModuleResponse)
 async def pause_module(
-    module_id: str,
+    instance_id: str,
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Pause (disable scheduling for) a module without deleting it."""
+    """Pause (disable scheduling for) a module without deleting it (addressed by instance UUID)."""
     user_id = uuid.UUID(current_user["id"])
-    stmt = select(Module).where(Module.user_id == user_id, Module.module_type == module_id)
+    stmt = select(Module).where(Module.id == uuid.UUID(instance_id), Module.user_id == user_id)
     result = await db.execute(stmt)
     module_row = result.scalar_one_or_none()
 
@@ -313,41 +307,41 @@ async def pause_module(
     return ModuleResponse.model_validate(module_row)
 
 
-@router.post("/modules/{module_id}/resume", response_model=ModuleResponse)
+@router.post("/modules/{instance_id}/resume", response_model=ModuleResponse)
 async def resume_module(
-    module_id: str,
+    instance_id: str,
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Resume a paused module."""
+    """Resume a paused module (addressed by instance UUID)."""
     user_id = uuid.UUID(current_user["id"])
-    stmt = select(Module).where(Module.user_id == user_id, Module.module_type == module_id)
+    stmt = select(Module).where(Module.id == uuid.UUID(instance_id), Module.user_id == user_id)
     result = await db.execute(stmt)
     module_row = result.scalar_one_or_none()
 
     if module_row is None:
         raise HTTPException(status_code=404, detail=_ERR("Module not found", "MODULE_NOT_FOUND"))
 
-    mod = module_registry.get_module(module_id)
+    mod = module_registry.get_module(module_row.module_type)
     module_row.enabled = True
     if mod:
         scheduler_instance.schedule_module(
-            str(module_row.id), module_id, mod.default_schedule, str(user_id)
+            str(module_row.id), module_row.module_type, mod.default_schedule, str(user_id)
         )
     await db.commit()
     await db.refresh(module_row)
     return ModuleResponse.model_validate(module_row)
 
 
-@router.delete("/modules/{module_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/modules/{instance_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def disable_module(
-    module_id: str,
+    instance_id: str,
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Disable/remove a module for the current user."""
+    """Disable/remove a module for the current user (addressed by instance UUID)."""
     user_id = uuid.UUID(current_user["id"])
-    stmt = select(Module).where(Module.user_id == user_id, Module.module_type == module_id)
+    stmt = select(Module).where(Module.id == uuid.UUID(instance_id), Module.user_id == user_id)
     result = await db.execute(stmt)
     module_row = result.scalar_one_or_none()
 
