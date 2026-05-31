@@ -89,6 +89,7 @@ class ChronotypePlanner(BaseModule):
             "sleep_log": {
                 "type": "array",
                 "title": "Sleep log entries",
+                "description": "Add at least 5 nights of sleep data. Each entry requires a date (YYYY-MM-DD), a sleep time (HH:MM), and a wake time (HH:MM), e.g. {\"date\": \"2024-03-01\", \"sleep_time\": \"23:30\", \"wake_time\": \"07:00\"}.",
                 "items": {
                     "type": "object",
                     "properties": {
@@ -102,6 +103,7 @@ class ChronotypePlanner(BaseModule):
             "task_categories": {
                 "type": "array",
                 "title": "Task categories to schedule",
+                "description": "Select the types of tasks you want the planner to fit into your schedule. Each selected category will be assigned to the optimal time block for your chronotype.",
                 "items": {
                     "type": "string",
                     "enum": ["deep_work", "meetings", "admin", "creative", "exercise"],

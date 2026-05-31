@@ -50,17 +50,20 @@ class ResearcherSecondBrain(BaseModule):
             "auto_fetch_arxiv": {
                 "type": "boolean",
                 "title": "Auto-fetch recent arXiv papers matching tags",
+                "description": "Enable to automatically retrieve and process the most recent arXiv papers that match your research topic tags on each run.",
                 "default": False,
             },
             "default_tags": {
                 "type": "array",
                 "title": "Research topic tags",
+                "description": "Enter keywords representing your research interests, e.g. 'machine learning' or 'RLHF'. These tags are used to search arXiv and to score paper relevance. Add one tag per entry.",
                 "items": {"type": "string"},
                 "default": ["machine learning", "LLM"],
             },
             "arxiv_ids": {
                 "type": "array",
                 "title": "Specific arXiv IDs to process",
+                "description": "Add the arXiv paper IDs you want to process directly, e.g. '2210.10760'. You can find the ID in the arXiv URL. Add one ID per entry.",
                 "items": {"type": "string"},
             },
         },

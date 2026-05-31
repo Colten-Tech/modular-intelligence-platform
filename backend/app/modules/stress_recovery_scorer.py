@@ -51,17 +51,20 @@ class StressRecoveryScorer(BaseModule):
             "baseline_days": {
                 "type": "number",
                 "title": "Baseline window in days",
+                "description": "Set how many past days are used to compute your personal stress baseline. A larger window (e.g. 14 days) gives a more stable baseline; a smaller window (e.g. 3 days) reacts faster to recent changes.",
                 "default": 7,
                 "minimum": 3,
             },
             "track_typing_speed": {
                 "type": "boolean",
                 "title": "Factor in typing speed changes",
+                "description": "Enable to include keyboard typing speed as an additional stress indicator. When enabled, submit your daily keyboard analytics for more accurate scoring.",
                 "default": False,
             },
             "track_screen_time": {
                 "type": "boolean",
                 "title": "Factor in screen time",
+                "description": "Enable to factor your daily screen time into the stress-recovery score. When enabled, submit your daily screen time data for enhanced accuracy.",
                 "default": False,
             },
         },

@@ -25,16 +25,19 @@ class NapOptimizer(BaseModule):
             "typical_sleep_time": {
                 "type": "string",
                 "title": "Typical bedtime (HH:MM)",
+                "description": "Enter the time you usually fall asleep in 24-hour format, e.g. '23:00' for 11 PM. This is used to model your sleep pressure cycle.",
                 "default": "23:00",
             },
             "typical_wake_time": {
                 "type": "string",
                 "title": "Typical wake time (HH:MM)",
+                "description": "Enter the time you typically wake up in 24-hour format, e.g. '07:00'. This anchors your circadian phase for nap window calculations.",
                 "default": "07:00",
             },
             "avoid_after": {
                 "type": "string",
                 "title": "Avoid napping after this time (HH:MM)",
+                "description": "Set the latest time you're willing to nap in 24-hour format, e.g. '15:00'. Napping after this time can disrupt your evening sleep onset.",
                 "default": "15:00",
             },
         },

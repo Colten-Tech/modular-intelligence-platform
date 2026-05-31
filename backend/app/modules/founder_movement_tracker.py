@@ -58,16 +58,19 @@ class FounderMovementTracker(BaseModule):
             "founder_linkedin_urls": {
                 "type": "array",
                 "title": "LinkedIn profile URLs to track",
+                "description": "Add the LinkedIn profile URLs of founders or executives you want to monitor for career changes, e.g. https://www.linkedin.com/in/username. Enter one URL per entry.",
                 "items": {"type": "string"},
             },
             "founder_names": {
                 "type": "array",
                 "title": "Founder/executive names to track",
+                "description": "Enter the full names of founders or executives to track via news search, e.g. 'Anna Schmidt'. Press Enter or click + to add each name.",
                 "items": {"type": "string"},
             },
             "alert_on": {
                 "type": "array",
                 "title": "Alert conditions",
+                "description": "Select which types of career movements should trigger an alert: role changes, new venture announcements, departures from a company, or stealth activity.",
                 "items": {
                     "type": "string",
                     "enum": ["role_change", "new_venture", "departure", "stealth"],

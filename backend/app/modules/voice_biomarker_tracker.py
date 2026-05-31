@@ -53,17 +53,20 @@ class VoiceBiomarkerTracker(BaseModule):
             "baseline_days": {
                 "type": "number",
                 "title": "Days to compute baseline from",
+                "description": "Set how many past days of voice recordings are used to establish your personal baseline. A higher value (e.g. 14) produces a more stable baseline; a lower value (e.g. 3) reacts faster to recent trends.",
                 "default": 7,
                 "minimum": 3,
             },
             "alert_threshold_fatigue": {
                 "type": "number",
                 "title": "Fatigue alert threshold (0–1)",
+                "description": "Set the fatigue score at which you want to receive an alert, on a scale of 0 (no fatigue) to 1 (maximum fatigue). For example, 0.7 triggers an alert when your fatigue score reaches 70%.",
                 "default": 0.7,
             },
             "alert_threshold_stress": {
                 "type": "number",
                 "title": "Stress alert threshold (0–1)",
+                "description": "Set the stress score at which you want to receive an alert, on a scale of 0 (no stress) to 1 (maximum stress). For example, 0.65 triggers an alert when your stress score reaches 65%.",
                 "default": 0.65,
             },
         },

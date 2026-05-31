@@ -60,17 +60,20 @@ class FencingAnalytics(BaseModule):
             "weapon": {
                 "type": "string",
                 "title": "Weapon",
+                "description": "Select the fencing weapon you compete with. Analytics and action-type breakdowns are tailored to the chosen weapon.",
                 "enum": ["foil", "epee", "sabre"],
                 "default": "foil",
             },
             "track_opponents": {
                 "type": "boolean",
                 "title": "Track opponent-specific stats",
+                "description": "Enable to include per-opponent win/loss records in your report for opponents you've faced 3 or more times.",
                 "default": True,
             },
             "export_to_coach": {
                 "type": "boolean",
                 "title": "Format output for coach sharing",
+                "description": "Enable to append a coach-friendly footer to the report with a timestamp, making it easy to copy and share with your coach.",
                 "default": False,
             },
         },

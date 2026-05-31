@@ -66,16 +66,19 @@ class RealEstateSignal(BaseModule):
             "zip_codes": {
                 "type": "array",
                 "title": "German zip codes to monitor",
+                "description": "Enter German postal codes for the areas you want to track, e.g. '80331' for central München. Add one zip code per entry.",
                 "items": {"type": "string"},
             },
             "cities": {
                 "type": "array",
                 "title": "Cities to monitor",
+                "description": "Enter the names of German cities to monitor for real estate listings, e.g. 'München' or 'Berlin'. Add one city per entry.",
                 "items": {"type": "string"},
             },
             "property_types": {
                 "type": "array",
                 "title": "Property types",
+                "description": "Select the types of properties you want to monitor: apartments, houses, or commercial real estate. Select all that apply.",
                 "items": {
                     "type": "string",
                     "enum": ["apartment", "house", "commercial"],
@@ -85,6 +88,7 @@ class RealEstateSignal(BaseModule):
             "max_price_sqm": {
                 "type": "number",
                 "title": "Maximum price per sqm (EUR)",
+                "description": "Set your maximum acceptable price per square meter in euros. Listings above this threshold will be filtered out. For example, enter 10000 for €10,000/sqm.",
                 "default": 10000,
             },
         },

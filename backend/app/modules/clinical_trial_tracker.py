@@ -70,23 +70,27 @@ class ClinicalTrialTracker(BaseModule):
             "therapeutic_areas": {
                 "type": "array",
                 "title": "Therapeutic areas to track",
+                "description": "Enter the medical or disease areas you want to monitor for clinical trial activity, e.g. 'Oncology', 'Cardiology', or 'Neurology'. Add one area per entry.",
                 "items": {"type": "string"},
                 "default": ["Oncology"],
             },
             "company_names": {
                 "type": "array",
                 "title": "Company names to track",
+                "description": "Enter the names of pharmaceutical or biotech companies whose trials you want to follow, e.g. 'BioNTech' or 'Bayer'. Add one company name per entry.",
                 "items": {"type": "string"},
             },
             "min_phase": {
                 "type": "string",
                 "title": "Minimum trial phase",
+                "description": "Set the earliest clinical trial phase to include. Choose 'I' for all phases, 'II' for mid-to-late stage, 'III' for late-stage only, or 'any' for no phase filter.",
                 "enum": ["I", "II", "III", "any"],
                 "default": "II",
             },
             "track_suspensions": {
                 "type": "boolean",
                 "title": "Alert on trial suspensions",
+                "description": "Enable to receive alerts whenever a tracked trial is suspended, which may indicate a safety signal or protocol issue.",
                 "default": True,
             },
         },

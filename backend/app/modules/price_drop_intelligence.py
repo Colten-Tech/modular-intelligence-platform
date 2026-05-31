@@ -60,16 +60,19 @@ class PriceDropIntelligence(BaseModule):
             "target_urls": {
                 "type": "array",
                 "title": "SaaS pricing page URLs to monitor",
+                "description": "Add the pricing page URLs for the SaaS tools you want to monitor, e.g. https://www.notion.so/pricing. Enter one URL per entry.",
                 "items": {"type": "string"},
             },
             "tool_names": {
                 "type": "array",
                 "title": "Tool names (parallel to target_urls)",
+                "description": "Enter the display name for each tool in the same order as the URLs above, e.g. 'Notion'. This label appears in alerts so you can identify which tool changed.",
                 "items": {"type": "string"},
             },
             "alert_threshold": {
                 "type": "number",
                 "title": "Alert on % price change threshold",
+                "description": "Only trigger an alert when a price changes by at least this percentage. For example, 5 means you'll only be notified if a plan price moves by 5% or more.",
                 "default": 5,
                 "minimum": 0,
                 "maximum": 100,

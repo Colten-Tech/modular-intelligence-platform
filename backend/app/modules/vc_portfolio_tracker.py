@@ -59,11 +59,12 @@ class VCPortfolioTracker(BaseModule):
             "vc_firm_urls": {
                 "type": "array",
                 "title": "VC firm portfolio page URLs",
+                "description": "Add the portfolio page URLs for each VC firm you want to monitor, e.g. https://earlybird.com/portfolio. Enter one URL per entry.",
                 "items": {"type": "string"},
             },
-            "track_exits": {"type": "boolean", "title": "Track exits", "default": True},
-            "track_new_portfolio": {"type": "boolean", "title": "Track new portfolio additions", "default": True},
-            "track_follow_on": {"type": "boolean", "title": "Track follow-on rounds", "default": True},
+            "track_exits": {"type": "boolean", "title": "Track exits", "default": True, "description": "Enable to receive alerts when a portfolio company exits via IPO, acquisition, or shutdown."},
+            "track_new_portfolio": {"type": "boolean", "title": "Track new portfolio additions", "default": True, "description": "Enable to be notified when a VC firm adds a new company to its portfolio."},
+            "track_follow_on": {"type": "boolean", "title": "Track follow-on rounds", "default": True, "description": "Enable to receive alerts when an existing portfolio company closes a follow-on funding round."},
         },
     }
 

@@ -73,27 +73,32 @@ class GrantFundingTracker(BaseModule):
             "company_sector": {
                 "type": "string",
                 "title": "Company sector (e.g. 'AI/ML SaaS', 'Biotech', 'CleanTech')",
+                "description": "Enter a short description of your company's sector, e.g. 'AI/ML SaaS', 'Biotech', or 'CleanTech'. This is used to score how relevant each grant opportunity is to your business.",
             },
             "company_stage": {
                 "type": "string",
                 "title": "Company stage",
+                "description": "Select your company's current funding stage. This filters grants to those open to companies at your stage — from seed-stage to growth.",
                 "enum": ["seed", "series-a", "series-b", "growth"],
                 "default": "seed",
             },
             "technology_focus": {
                 "type": "array",
                 "title": "Technology keywords",
+                "description": "Enter keywords describing your core technologies, e.g. 'machine learning', 'quantum computing', or 'CRISPR'. Add one keyword per entry to improve grant matching accuracy.",
                 "items": {"type": "string"},
             },
             "regions": {
                 "type": "array",
                 "title": "Regions to search",
+                "description": "Enter the regions or countries to search for grants, e.g. 'Germany' or 'EU'. Add one region per entry.",
                 "items": {"type": "string"},
                 "default": ["Germany", "EU"],
             },
             "min_relevance": {
                 "type": "number",
                 "title": "Minimum relevance score (0–1)",
+                "description": "Only show grants with a relevance score at or above this threshold (0 to 1). For example, 0.5 returns moderately relevant grants; 0.8 returns only the most closely matched opportunities.",
                 "default": 0.5,
                 "minimum": 0,
                 "maximum": 1,

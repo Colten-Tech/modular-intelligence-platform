@@ -70,11 +70,13 @@ class StartupSignalTracker(BaseModule):
             "target_companies": {
                 "type": "array",
                 "title": "Company URLs or names to track",
+                "description": "Add the website URLs or names of startups you want to monitor, e.g. https://www.celonis.com or 'Personio'. Enter one company per entry.",
                 "items": {"type": "string"},
             },
             "regions": {
                 "type": "array",
                 "title": "Regions",
+                "description": "Select the DACH regions you want to scope signals to. Choose 'All DACH' to cover Germany, Austria, and Switzerland without restriction.",
                 "items": {
                     "type": "string",
                     "enum": ["Baden-Württemberg", "Bayern", "Berlin", "All DACH"],
@@ -83,6 +85,7 @@ class StartupSignalTracker(BaseModule):
             "signal_types": {
                 "type": "array",
                 "title": "Signal types",
+                "description": "Choose which kinds of business signals to track: funding rounds, hiring surges, executive changes, product launches, or press coverage. Select all that apply.",
                 "items": {
                     "type": "string",
                     "enum": ["funding", "hiring_surge", "executive_change", "product_launch", "press"],
@@ -91,6 +94,7 @@ class StartupSignalTracker(BaseModule):
             "min_score": {
                 "type": "number",
                 "title": "Min relevance score (0–100)",
+                "description": "Only surface signals with a relevance score at or above this value. Higher values (e.g. 80) return only the strongest signals; lower values (e.g. 30) return more but noisier results.",
                 "default": 60,
                 "minimum": 0,
                 "maximum": 100,

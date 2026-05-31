@@ -78,12 +78,14 @@ class SalaryIntelligence(BaseModule):
             "roles_to_track": {
                 "type": "array",
                 "title": "Role titles to track",
+                "description": "Enter the job titles you want salary intelligence for, e.g. 'Senior Backend Engineer' or 'Product Manager'. Add one role title per entry for best matching accuracy.",
                 "items": {"type": "string"},
                 "default": ["Software Engineer", "Product Manager"],
             },
             "cities": {
                 "type": "array",
                 "title": "Cities to include",
+                "description": "Enter the German cities to include in salary analysis, e.g. 'Berlin', 'München', or 'Hamburg'. Add one city per entry.",
                 "items": {"type": "string"},
                 "default": ["Berlin", "München", "Hamburg"],
             },
