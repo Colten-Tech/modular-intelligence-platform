@@ -8,6 +8,7 @@ from app.config import settings
 from app.core.scheduler import scheduler_instance
 from app.core.module_registry import module_registry
 from app.api import modules, signals, jobs, user, billing, admin
+from app.models.database import engine, Base
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,6 +21,12 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting Modular Intelligence Platform API")
+
+    # Create all DB tables if they don't exist (idempotent)
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+    logger.info("Database tables verified/created")
+
     module_registry.discover()
     logger.info(f"Discovered {len(module_registry.list_modules())} modules")
     scheduler_instance.start()
