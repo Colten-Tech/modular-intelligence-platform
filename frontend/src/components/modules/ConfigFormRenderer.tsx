@@ -6,7 +6,7 @@ import { z } from 'zod'
 import { useState, useCallback } from 'react'
 import { cn } from '@/lib/utils'
 import type { JSONSchema, JSONSchemaProperty } from '@/types'
-import { X, Plus, Loader2, Info } from 'lucide-react'
+import { X, Plus, Loader2 } from 'lucide-react'
 
 interface ConfigFormRendererProps {
   schema: JSONSchema
@@ -86,14 +86,10 @@ function FormField({ propKey, prop, control, errors }: FieldProps) {
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center gap-2">
-        <label className="text-xs text-text-secondary">{label}</label>
-        {prop.description && (
-          <span title={prop.description}>
-            <Info className="w-3 h-3 text-text-muted cursor-help" />
-          </span>
-        )}
-      </div>
+      <label className="text-xs font-medium text-text-secondary block">{label}</label>
+      {prop.description && (
+        <p className="text-[11px] text-text-muted leading-relaxed -mt-0.5">{prop.description}</p>
+      )}
 
       <Controller
         name={propKey}
@@ -146,7 +142,7 @@ function FormField({ propKey, prop, control, errors }: FieldProps) {
                 {...field}
                 rows={3}
                 className="w-full px-3 py-2 text-sm resize-y"
-                placeholder={prop.description}
+                placeholder={prop.default != null ? String(prop.default) : undefined}
               />
             )
           }
@@ -232,7 +228,7 @@ function FormField({ propKey, prop, control, errors }: FieldProps) {
               {...field}
               type="text"
               className="w-full px-3 py-2 text-sm"
-              placeholder={prop.description ?? prop.default as string}
+              placeholder={prop.default != null ? String(prop.default) : undefined}
             />
           )
         }}

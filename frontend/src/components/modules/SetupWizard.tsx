@@ -153,40 +153,55 @@ export function SetupWizard({ module, onClose, onSuccess }: SetupWizardProps) {
             >
               {step === 0 && (
                 <div className="space-y-4">
-                  <h3 className="text-text-primary font-medium text-sm">What this module does</h3>
-                  <p className="text-text-secondary text-sm leading-relaxed">
-                    {module.description}
-                  </p>
+                  <div>
+                    <h3 className="text-text-primary font-medium text-sm mb-1">What this module does</h3>
+                    <p className="text-text-secondary text-sm leading-relaxed">
+                      {module.description}
+                    </p>
+                  </div>
                   <div className="space-y-2">
                     <p className="text-[10px] text-text-muted uppercase tracking-wide">Details</p>
                     <div className="grid grid-cols-2 gap-2">
                       <div className="bg-bg-elevated rounded p-3">
-                        <p className="text-[10px] text-text-muted mb-1">Cluster</p>
+                        <p className="text-[10px] text-text-muted mb-1">Intelligence cluster</p>
                         <p className="text-xs text-text-secondary">
                           {CLUSTER_LABELS[module.cluster]}
                         </p>
                       </div>
                       <div className="bg-bg-elevated rounded p-3">
-                        <p className="text-[10px] text-text-muted mb-1">Default Schedule</p>
+                        <p className="text-[10px] text-text-muted mb-1">Runs automatically</p>
                         <p className="text-xs text-text-secondary">{module.default_schedule}</p>
                       </div>
                       <div className="bg-bg-elevated rounded p-3">
-                        <p className="text-[10px] text-text-muted mb-1">Required Plan</p>
+                        <p className="text-[10px] text-text-muted mb-1">Required plan</p>
                         <p className="text-xs text-text-secondary capitalize">
                           {module.required_plan}+
                         </p>
                       </div>
+                      <div className="bg-bg-elevated rounded p-3">
+                        <p className="text-[10px] text-text-muted mb-1">Setup steps</p>
+                        <p className="text-xs text-text-secondary">
+                          {dataSrcKeys.length > 0 ? 'Sources → Filters → Delivery' : 'Filters → Delivery'}
+                        </p>
+                      </div>
                     </div>
                   </div>
+                  <p className="text-[11px] text-text-muted border-l-2 border-border pl-3 leading-relaxed">
+                    After enabling, the first job runs within minutes. Signals appear in your feed as the module discovers them. All settings can be updated at any time.
+                  </p>
                 </div>
               )}
 
               {step === 1 && (
                 <div className="space-y-4">
-                  <h3 className="text-text-primary font-medium text-sm">Data Sources</h3>
-                  <p className="text-text-muted text-xs">
-                    Configure where this module fetches its data.
-                  </p>
+                  <div>
+                    <h3 className="text-text-primary font-medium text-sm mb-1">Data Sources</h3>
+                    <p className="text-text-muted text-xs leading-relaxed">
+                      {dataSrcKeys.length > 0
+                        ? `Tell the module where to fetch its data. ${module.display_name} will check these sources on every scheduled run.`
+                        : `${module.display_name} uses built-in data sources and requires no URLs or API keys. Continue to the next step to set your filters.`}
+                    </p>
+                  </div>
                   {dataSrcKeys.length > 0 ? (
                     <ConfigFormRenderer
                       schema={makeSubSchema(dataSrcKeys)}
@@ -195,22 +210,29 @@ export function SetupWizard({ module, onClose, onSuccess }: SetupWizardProps) {
                         setModuleConfig((prev) => ({ ...prev, ...vals }))
                         setStep(2)
                       }}
-                      submitLabel="Next: Filters"
+                      submitLabel="Next: Filters →"
                     />
                   ) : (
-                    <p className="text-text-muted text-sm text-center py-6">
-                      No data source configuration required.
-                    </p>
+                    <div className="flex items-start gap-3 p-3 bg-bg-elevated rounded border border-border">
+                      <span className="mt-0.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: clusterColor }} />
+                      <p className="text-xs text-text-secondary leading-relaxed">
+                        No source configuration needed. Click <strong className="text-text-primary">Next</strong> below to configure your relevance filters.
+                      </p>
+                    </div>
                   )}
                 </div>
               )}
 
               {step === 2 && (
                 <div className="space-y-4">
-                  <h3 className="text-text-primary font-medium text-sm">Filters & Relevance</h3>
-                  <p className="text-text-muted text-xs">
-                    Fine-tune which signals get surfaced to you.
-                  </p>
+                  <div>
+                    <h3 className="text-text-primary font-medium text-sm mb-1">Filters & Relevance</h3>
+                    <p className="text-text-muted text-xs leading-relaxed">
+                      {filterKeys.length > 0
+                        ? `Tell the module what's relevant to you. Signals that don't match your criteria are filtered out before they reach your feed. All of these can be changed at any time after enabling.`
+                        : `No filter configuration needed — ${module.display_name} surfaces all detected signals to your feed.`}
+                    </p>
+                  </div>
                   {filterKeys.length > 0 ? (
                     <ConfigFormRenderer
                       schema={makeSubSchema(filterKeys)}
@@ -219,22 +241,27 @@ export function SetupWizard({ module, onClose, onSuccess }: SetupWizardProps) {
                         setModuleConfig((prev) => ({ ...prev, ...vals }))
                         setStep(3)
                       }}
-                      submitLabel="Next: Delivery"
+                      submitLabel="Next: Delivery →"
                     />
                   ) : (
-                    <p className="text-text-muted text-sm text-center py-6">
-                      No filter configuration required.
-                    </p>
+                    <div className="flex items-start gap-3 p-3 bg-bg-elevated rounded border border-border">
+                      <span className="mt-0.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ background: clusterColor }} />
+                      <p className="text-xs text-text-secondary leading-relaxed">
+                        No filters to configure. Click <strong className="text-text-primary">Next</strong> to set up your delivery preferences.
+                      </p>
+                    </div>
                   )}
                 </div>
               )}
 
               {step === 3 && (
                 <div className="space-y-4">
-                  <h3 className="text-text-primary font-medium text-sm">Delivery Settings</h3>
-                  <p className="text-text-muted text-xs">
-                    Choose how you receive signals from this module.
-                  </p>
+                  <div>
+                    <h3 className="text-text-primary font-medium text-sm mb-1">Delivery Settings</h3>
+                    <p className="text-text-muted text-xs leading-relaxed">
+                      Choose how and when you receive signals. Email digests batch signals to reduce noise — use real-time only for high-urgency modules. You can update these in Settings at any time.
+                    </p>
+                  </div>
 
                   <div className="space-y-4">
                     {/* Email toggle */}
@@ -307,10 +334,12 @@ export function SetupWizard({ module, onClose, onSuccess }: SetupWizardProps) {
 
               {step === 4 && (
                 <div className="space-y-4">
-                  <h3 className="text-text-primary font-medium text-sm">Ready to launch</h3>
-                  <p className="text-text-muted text-xs">
-                    Review your settings and enable the module.
-                  </p>
+                  <div>
+                    <h3 className="text-text-primary font-medium text-sm mb-1">Ready to launch</h3>
+                    <p className="text-text-muted text-xs leading-relaxed">
+                      Review your configuration below. Once enabled, the first job will be queued immediately and signals will appear in your feed as they're discovered. You can pause, reconfigure, or remove the module at any time.
+                    </p>
+                  </div>
 
                   <div className="bg-bg-elevated rounded border border-border p-4 space-y-3">
                     <div className="flex items-center gap-2">
