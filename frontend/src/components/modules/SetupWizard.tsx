@@ -86,7 +86,7 @@ export function SetupWizard({ module, onClose, onSuccess }: SetupWizardProps) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 16 }}
         transition={{ duration: 0.15 }}
-        className="w-full max-w-lg bg-bg-surface border border-border rounded overflow-hidden shadow-2xl"
+        className="w-full max-w-lg bg-bg-surface border border-border rounded overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
       >
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-4 border-b border-border">
@@ -141,8 +141,8 @@ export function SetupWizard({ module, onClose, onSuccess }: SetupWizardProps) {
           ))}
         </div>
 
-        {/* Content */}
-        <div className="px-5 pb-5 min-h-[280px]">
+        {/* Content — scrollable, fills remaining height between header and footer */}
+        <div className="px-5 pb-5 min-h-[280px] overflow-y-auto flex-1">
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
