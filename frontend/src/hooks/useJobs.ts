@@ -15,8 +15,8 @@ export function useJobs(params: JobFilters = {}) {
   return useQuery({
     queryKey: jobKeys.list(params),
     queryFn: () => api.getJobs(params),
-    refetchInterval: 15_000,
-    staleTime: 10_000,
+    refetchInterval: 5_000,  // poll every 5s so new jobs surface quickly
+    staleTime: 3_000,
   })
 }
 

@@ -93,8 +93,13 @@ export function useRunModule() {
     mutationFn: (instanceId: string) => api.runModule(instanceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: moduleKeys.all })
-      queryClient.invalidateQueries({ queryKey: ['jobs'] })
       toast.success('Module job started')
+
+      // The backend returns 202 *before* the background task creates the job
+      // row. Delay the first invalidation so the DB write has time to land,
+      // then poll again a few seconds later to catch any stragglers.
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['jobs'] }), 1500)
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['jobs'] }), 5000)
     },
     onError: (err: Error) => {
       toast.error(`Failed to run module: ${err.message}`)

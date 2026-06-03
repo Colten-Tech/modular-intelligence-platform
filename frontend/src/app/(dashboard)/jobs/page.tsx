@@ -53,7 +53,7 @@ export default function JobsPage() {
   const [moduleFilter, setModuleFilter] = useState('')
   const { mutate: retryJob, isPending: retrying } = useRetryJob()
 
-  const { data: jobsData, isLoading } = useJobs({
+  const { data: jobsData, isLoading, error } = useJobs({
     status: statusFilter !== 'all' ? statusFilter : undefined,
   })
 
@@ -149,10 +149,16 @@ export default function JobsPage() {
                     ))}
                   </tr>
                 ))
+              ) : error ? (
+                <tr>
+                  <td colSpan={6} className="text-center py-12 text-error/70">
+                    Failed to load jobs: {(error as Error).message}
+                  </td>
+                </tr>
               ) : filtered.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="text-center py-12 text-text-muted">
-                    No jobs found.
+                    No jobs yet — trigger a module run to see execution history here.
                   </td>
                 </tr>
               ) : (
