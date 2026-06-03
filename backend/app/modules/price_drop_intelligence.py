@@ -218,7 +218,7 @@ class PriceDropIntelligence(BaseModule):
             try:
                 ps = PriceSnapshot(
                     id=uuid.uuid4(),
-                    module_id=None,
+                    module_id=None,  # PriceSnapshot.module_id is nullable — no FK violation
                     url=url,
                     tool_name=tool_name,
                     price_data={
@@ -230,17 +230,8 @@ class PriceDropIntelligence(BaseModule):
                     change_type=change_type if change_detected else None,
                 )
                 db_session.add(ps)
-                # Also save raw snapshot
-                db_session.add(
-                    RawSnapshot(
-                        id=uuid.uuid4(),
-                        module_id=None,
-                        url=url,
-                        content_hash=current_hash,
-                        raw_html=html[:500_000],
-                        fetched_at=datetime.now(timezone.utc),
-                    )
-                )
+                # RawSnapshot.module_id is NOT NULL — skip to avoid FK violation
+                # when no module_instance_id is in scope for this helper.
                 await db_session.commit()
             except Exception as exc:
                 logger.warning(f"Could not save price snapshot: {exc}")

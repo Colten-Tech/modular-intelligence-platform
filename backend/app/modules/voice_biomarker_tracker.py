@@ -89,11 +89,17 @@ class VoiceBiomarkerTracker(BaseModule):
         now = datetime.now(timezone.utc)
         cutoff = now - timedelta(days=1)
 
-        # Find today's unprocessed recordings
+        # Find today's unprocessed recordings — scoped to this module instance
+        import uuid as _uuid
+        mid = _uuid.UUID(module_instance_id) if module_instance_id else None
+
         try:
+            recent_filter = [VoiceRecording.recorded_at >= cutoff]
+            if mid is not None:
+                recent_filter.append(VoiceRecording.module_id == mid)
             stmt = (
                 select(VoiceRecording)
-                .where(VoiceRecording.recorded_at >= cutoff)
+                .where(*recent_filter)
                 .order_by(VoiceRecording.recorded_at.desc())
             )
             result = await db_session.execute(stmt)
@@ -109,12 +115,15 @@ class VoiceBiomarkerTracker(BaseModule):
         # Compute baseline from past N days
         baseline_cutoff = now - timedelta(days=baseline_days + 1)
         try:
+            baseline_filter = [
+                VoiceRecording.recorded_at >= baseline_cutoff,
+                VoiceRecording.recorded_at < cutoff,
+            ]
+            if mid is not None:
+                baseline_filter.append(VoiceRecording.module_id == mid)
             baseline_stmt = (
                 select(VoiceRecording)
-                .where(
-                    VoiceRecording.recorded_at >= baseline_cutoff,
-                    VoiceRecording.recorded_at < cutoff,
-                )
+                .where(*baseline_filter)
                 .order_by(VoiceRecording.recorded_at.desc())
             )
             baseline_result = await db_session.execute(baseline_stmt)

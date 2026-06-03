@@ -89,8 +89,9 @@ export interface Job {
 
 export interface JobLog {
   timestamp: string
-  level: 'INFO' | 'WARN' | 'ERROR' | 'SUCCESS'
+  level: 'INFO' | 'WARNING' | 'ERROR'
   message: string
+  data?: Record<string, unknown>
 }
 
 export interface UserStats {
@@ -100,6 +101,9 @@ export interface UserStats {
   jobs_today: number
   success_rate: number
   modules_limit: number
+  total_signals: number
+  unread_signals: number
+  plan: string
 }
 
 export interface JSONSchema {
@@ -124,27 +128,27 @@ export interface JSONSchemaProperty {
 }
 
 export interface PaginatedResponse<T> {
-  data: T[]
+  items: T[]
   total: number
   page: number
-  per_page: number
+  limit: number
   has_more: boolean
 }
 
 export interface SignalFilters {
-  cluster?: Cluster
-  read?: boolean
-  archived?: boolean
+  unread_only?: boolean
+  min_score?: number
+  date_from?: string
+  date_to?: string
   search?: string
   page?: number
-  per_page?: number
+  limit?: number
 }
 
 export interface JobFilters {
   module_id?: string
   status?: JobStatus
   date_from?: string
-  date_to?: string
   page?: number
-  per_page?: number
+  limit?: number
 }

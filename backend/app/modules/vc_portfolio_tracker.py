@@ -126,15 +126,8 @@ class VCPortfolioTracker(BaseModule):
                 if last_snap and last_snap.content_hash == current_hash:
                     return []
                 old_html = last_snap.raw_html if last_snap else ""
-                new_snap = RawSnapshot(
-                    id=uuid.uuid4(),
-                    module_id=None,
-                    url=url,
-                    content_hash=current_hash,
-                    raw_html=html[:500_000],
-                    fetched_at=datetime.now(timezone.utc),
-                )
-                db_session.add(new_snap)
+                # Skip snapshot persistence — module_instance_id is not available
+                # in this helper, so we cannot satisfy the NOT NULL FK constraint.
                 await db_session.commit()
             except Exception as exc:
                 logger.warning(f"Snapshot error for {url}: {exc}")

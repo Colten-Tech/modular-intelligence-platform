@@ -140,16 +140,10 @@ class FounderMovementTracker(BaseModule):
                 if last_snap and last_snap.content_hash == current_hash:
                     return []
                 old_html = last_snap.raw_html if last_snap else ""
-                db_session.add(
-                    RawSnapshot(
-                        id=uuid.uuid4(),
-                        module_id=None,
-                        url=url,
-                        content_hash=current_hash,
-                        raw_html=html[:200_000],
-                        fetched_at=datetime.now(timezone.utc),
-                    )
-                )
+                # Only persist the snapshot when we have a module_instance_id to
+                # satisfy the NOT NULL FK constraint on raw_snapshots.module_id.
+                # LinkedIn profiles are scraped without a module_instance_id context
+                # here, so skip snapshot persistence for this code path.
                 await db_session.commit()
             except Exception:
                 pass

@@ -273,7 +273,7 @@ async def get_module_status(
 
     # Signal count
     sig_count_result = await db.execute(
-        select(func.count()).where(Signal.module_id == module_row.id, Signal.user_id == user_id)
+        select(func.count()).select_from(Signal).where(Signal.module_id == module_row.id, Signal.user_id == user_id)
     )
     total_signals = sig_count_result.scalar_one()
 

@@ -189,14 +189,21 @@ async def admin_update_plan(
     await db.commit()
     await db.refresh(db_user)
 
+    module_count = (
+        await db.execute(select(func.count()).select_from(Module).where(Module.user_id == uid))
+    ).scalar_one()
+    signal_count = (
+        await db.execute(select(func.count()).select_from(SignalModel).where(SignalModel.user_id == uid))
+    ).scalar_one()
+
     return AdminUserRow(
         id=str(db_user.id),
         email=db_user.email,
         plan=db_user.plan,
         is_admin=db_user.is_admin,
         created_at=db_user.created_at.isoformat() if db_user.created_at else "",
-        module_count=0,
-        signal_count=0,
+        module_count=module_count,
+        signal_count=signal_count,
     )
 
 
@@ -223,12 +230,19 @@ async def admin_toggle_admin(
     await db.commit()
     await db.refresh(db_user)
 
+    module_count = (
+        await db.execute(select(func.count()).select_from(Module).where(Module.user_id == uid))
+    ).scalar_one()
+    signal_count = (
+        await db.execute(select(func.count()).select_from(SignalModel).where(SignalModel.user_id == uid))
+    ).scalar_one()
+
     return AdminUserRow(
         id=str(db_user.id),
         email=db_user.email,
         plan=db_user.plan,
         is_admin=db_user.is_admin,
         created_at=db_user.created_at.isoformat() if db_user.created_at else "",
-        module_count=0,
-        signal_count=0,
+        module_count=module_count,
+        signal_count=signal_count,
     )

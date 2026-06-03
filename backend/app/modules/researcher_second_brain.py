@@ -85,7 +85,7 @@ class ResearcherSecondBrain(BaseModule):
         # 1. Process specific arXiv IDs
         for arxiv_id in arxiv_ids[:10]:
             try:
-                sig = await self._process_arxiv_paper(arxiv_id.strip(), tags, db_session)
+                sig = await self._process_arxiv_paper(arxiv_id.strip(), tags, db_session, module_instance_id)
                 if sig:
                     signals.append(sig)
             except Exception as exc:
@@ -97,7 +97,7 @@ class ResearcherSecondBrain(BaseModule):
                 new_papers = await self._fetch_recent_arxiv(tags)
                 for paper_id in new_papers[:5]:
                     try:
-                        sig = await self._process_arxiv_paper(paper_id, tags, db_session)
+                        sig = await self._process_arxiv_paper(paper_id, tags, db_session, module_instance_id)
                         if sig:
                             signals.append(sig)
                     except Exception as exc:
@@ -127,7 +127,7 @@ class ResearcherSecondBrain(BaseModule):
         return ids
 
     async def _process_arxiv_paper(
-        self, arxiv_id: str, tags: List[str], db_session
+        self, arxiv_id: str, tags: List[str], db_session, module_instance_id: str = None
     ) -> Optional[Signal]:
         # Fetch abstract from arXiv
         params = {"id_list": arxiv_id, "max_results": 1}
@@ -223,12 +223,13 @@ class ResearcherSecondBrain(BaseModule):
             body_parts.extend(["", f"**Implications:** {implications}"])
 
         # Generate and store embedding
-        if db_session:
+        if db_session and module_instance_id:
             await self._store_embedding(
                 arxiv_id=arxiv_id,
                 text=f"{title}\n{abstract}",
                 metadata={"arxiv_id": arxiv_id, "title": title, "tags": tags},
                 db_session=db_session,
+                module_instance_id=module_instance_id,
             )
 
         return Signal(
@@ -251,9 +252,13 @@ class ResearcherSecondBrain(BaseModule):
         text: str,
         metadata: Dict[str, Any],
         db_session,
+        module_instance_id: str = None,
     ) -> None:
         """Store text embedding in the embeddings table."""
         from app.models.database import Embedding
+
+        if not module_instance_id:
+            return  # Cannot satisfy NOT NULL module_id FK without a valid instance id
 
         # In a production system, call an embedding API (e.g. OpenAI, Cohere, or Supabase pgvector).
         # Here we store a placeholder until an embedding service is configured.
@@ -262,10 +267,10 @@ class ResearcherSecondBrain(BaseModule):
         try:
             emb = Embedding(
                 id=uuid.uuid4(),
-                module_id=None,
+                module_id=uuid.UUID(module_instance_id),
                 chunk_text=text[:5000],
                 embedding=embedding_placeholder,
-                metadata={**metadata, "arxiv_id": arxiv_id},
+                meta={**metadata, "arxiv_id": arxiv_id},
             )
             db_session.add(emb)
             await db_session.commit()

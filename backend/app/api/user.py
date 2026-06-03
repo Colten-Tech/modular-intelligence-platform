@@ -95,23 +95,23 @@ async def get_user_stats(
 
     # Signals today
     today_sigs = await db.execute(
-        select(func.count()).where(Signal.user_id == user_id, Signal.created_at >= today_start)
+        select(func.count()).select_from(Signal).where(Signal.user_id == user_id, Signal.created_at >= today_start)
     )
     signals_today = today_sigs.scalar_one()
 
     # Signals this week
     week_sigs = await db.execute(
-        select(func.count()).where(Signal.user_id == user_id, Signal.created_at >= week_ago)
+        select(func.count()).select_from(Signal).where(Signal.user_id == user_id, Signal.created_at >= week_ago)
     )
     signals_this_week = week_sigs.scalar_one()
 
     # Total signals
-    total_sigs = await db.execute(select(func.count()).where(Signal.user_id == user_id))
+    total_sigs = await db.execute(select(func.count()).select_from(Signal).where(Signal.user_id == user_id))
     total_signals = total_sigs.scalar_one()
 
     # Unread signals
     unread_sigs = await db.execute(
-        select(func.count()).where(Signal.user_id == user_id, Signal.read == False, Signal.archived == False)
+        select(func.count()).select_from(Signal).where(Signal.user_id == user_id, Signal.read == False, Signal.archived == False)
     )
     unread_signals = unread_sigs.scalar_one()
 

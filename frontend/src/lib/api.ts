@@ -138,10 +138,15 @@ export async function getModuleSignals(
 }
 
 export async function getModuleStatus(instanceId: string): Promise<{
+  module_id: string
+  instance_id: string | null
+  enabled: boolean
   last_run: string | null
   next_run: string | null
-  job_counts: Record<string, number>
-  status: string
+  total_jobs: number
+  successful_jobs: number
+  failed_jobs: number
+  total_signals: number
 }> {
   return request(`/api/modules/${instanceId}/status`)
 }
@@ -199,11 +204,11 @@ export async function updateUserSettings(
 
 // Billing
 export async function getBillingPortalUrl(): Promise<string> {
-  const data = await request<{ url: string }>('/api/billing/portal')
-  return data.url
+  const data = await request<{ portal_url: string }>('/api/billing/portal')
+  return data.portal_url
 }
 
-export async function createCheckoutSession(plan: string): Promise<{ url: string }> {
+export async function createCheckoutSession(plan: string): Promise<{ checkout_url: string; session_id: string }> {
   return request('/api/billing/checkout', {
     method: 'POST',
     body: JSON.stringify({ plan }),

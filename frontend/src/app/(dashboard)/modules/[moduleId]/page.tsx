@@ -53,7 +53,7 @@ export default function ModulePage() {
   const { mutate: resumeModule, isPending: resuming } = useResumeModule()
   const { mutate: updateConfig, isPending: saving } = useUpdateModuleConfig()
 
-  const signals = signalsData?.data ?? []
+  const signals = signalsData?.items ?? []
   const clusterColor = definition ? CLUSTER_COLORS[definition.cluster] : 'var(--text-muted)'
 
   if (modulesLoading) {
@@ -129,8 +129,8 @@ export default function ModulePage() {
             {instance.last_run && (
               <span className="text-[11px] text-text-muted">
                 Last run: {formatRelativeTime(instance.last_run)}
-                {status?.job_counts && (
-                  <> — {status.job_counts.signals ?? 0} signals found</>
+                {status?.total_signals !== undefined && (
+                  <> — {status.total_signals} signals total</>
                 )}
               </span>
             )}

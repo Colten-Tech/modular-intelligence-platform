@@ -155,10 +155,14 @@ class ClinicalTrialTracker(BaseModule):
             params["query.term"] = " AND ".join(query_parts)
 
         # Phase filter
-        phase_map = {"I": ["PHASE1"], "II": ["PHASE1", "PHASE2"], "III": ["PHASE1", "PHASE2", "PHASE3"]}
+        params["filter.overallStatus"] = "RECRUITING,ACTIVE_NOT_RECRUITING,SUSPENDED,COMPLETED"
         if min_phase != "any":
-            phases = ["PHASE2", "PHASE3"] if min_phase == "II" else ["PHASE3"]
-            params["filter.overallStatus"] = "RECRUITING,ACTIVE_NOT_RECRUITING,SUSPENDED,COMPLETED"
+            phase_values = {
+                "I": "PHASE1,PHASE2,PHASE3,PHASE4",
+                "II": "PHASE2,PHASE3,PHASE4",
+                "III": "PHASE3,PHASE4",
+            }
+            params["filter.phase"] = phase_values.get(min_phase, "PHASE2,PHASE3,PHASE4")
 
         async with httpx.AsyncClient(timeout=20.0) as client:
             resp = await client.get(CLINICALTRIALS_API, params=params)

@@ -28,8 +28,8 @@ export default function BillingPage() {
     if (plan === currentPlan) return
     setLoading(plan)
     try {
-      const { url } = await createCheckoutSession(plan)
-      window.location.href = url
+      const { checkout_url } = await createCheckoutSession(plan)
+      window.location.href = checkout_url
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to start checkout')
     } finally {

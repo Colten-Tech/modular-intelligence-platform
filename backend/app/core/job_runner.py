@@ -160,8 +160,16 @@ async def _check_and_queue_alerts(
         return
 
     from app.core.alert_delivery import send_signal_alert
+    from app.models.database import Alert
 
-    # Fetch high-score unread signals without an existing alert
+    # Fetch high-score unread signals that do NOT already have an alert row.
+    # Using a NOT EXISTS subquery prevents duplicate alerts across runs.
+    alerted_sub = (
+        select(Alert.signal_id)
+        .where(Alert.signal_id == SignalModel.id)
+        .correlate(SignalModel)
+        .exists()
+    )
     stmt = (
         select(SignalModel)
         .where(
@@ -169,6 +177,7 @@ async def _check_and_queue_alerts(
             SignalModel.user_id == user_id,
             SignalModel.score >= 0.75,
             SignalModel.read == False,
+            ~alerted_sub,
         )
         .order_by(SignalModel.created_at.desc())
         .limit(10)

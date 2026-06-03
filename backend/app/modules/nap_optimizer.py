@@ -1,6 +1,6 @@
 import logging
 import math
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone  # noqa: F401
 from typing import List, Optional
 
 from app.core.base_module import BaseModule, Signal
@@ -57,10 +57,9 @@ class NapOptimizer(BaseModule):
         return "nap-optimizer"
 
     async def run(self, config: dict, db_session, module_instance_id: str = None) -> List[Signal]:
-        from datetime import datetime, timedelta
         import math
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc).replace(tzinfo=None)  # naive UTC for time arithmetic
         # Two-process model of sleep (Borbély)
         # Process S: homeostatic sleep pressure, rises since waking
         # Process C: circadian alertness, cosine-based 24h cycle

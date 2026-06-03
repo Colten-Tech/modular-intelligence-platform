@@ -57,7 +57,7 @@ export default function JobsPage() {
     status: statusFilter !== 'all' ? statusFilter : undefined,
   })
 
-  const jobs = jobsData?.data ?? []
+  const jobs = jobsData?.items ?? []
 
   const filtered = moduleFilter
     ? jobs.filter((j) =>

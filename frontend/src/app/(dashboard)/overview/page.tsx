@@ -33,7 +33,7 @@ export default function OverviewPage() {
   const { data: modulesData } = useModules()
   const { mutate: runModule } = useRunModule()
 
-  const signals = signalsData?.data ?? []
+  const signals = signalsData?.items ?? []
   const unreadCount = signals.filter((s) => !s.read).length
 
   const filtered = search
@@ -177,7 +177,7 @@ export default function OverviewPage() {
                 value={stats?.jobs_today ?? 0}
                 sub={
                   stats?.success_rate !== undefined
-                    ? `${Math.round(stats.success_rate * 100)}% ok`
+                    ? `${Math.round(stats.success_rate)}% ok`
                     : undefined
                 }
                 icon={Briefcase}

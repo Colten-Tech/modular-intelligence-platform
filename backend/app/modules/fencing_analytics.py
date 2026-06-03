@@ -93,9 +93,17 @@ class FencingAnalytics(BaseModule):
         if db_session is None:
             return DEMO_SIGNALS
 
-        # Fetch all bouts for this user
+        # Fetch all bouts for this module instance (scoped to the owning user via module_id)
         try:
-            stmt = select(FencingBout).order_by(FencingBout.date.desc()).limit(200)
+            mid = uuid.UUID(module_instance_id) if module_instance_id else None
+            if mid is None:
+                return DEMO_SIGNALS
+            stmt = (
+                select(FencingBout)
+                .where(FencingBout.module_id == mid)
+                .order_by(FencingBout.date.desc())
+                .limit(200)
+            )
             result = await db_session.execute(stmt)
             bouts = result.scalars().all()
         except Exception as exc:
@@ -184,8 +192,8 @@ class FencingAnalytics(BaseModule):
 
         # Monthly breakdown
         now = datetime.now(timezone.utc)
-        month_start = now.replace(day=1, hour=0, minute=0, second=0)
-        month_bouts = [b for b in bouts if b.date and b.date >= month_start.date()]
+        month_start_date = now.replace(day=1).date()
+        month_bouts = [b for b in bouts if b.date and b.date >= month_start_date]
         month_wins = sum(1 for b in month_bouts if b.result == "win")
         month_wr = month_wins / len(month_bouts) if month_bouts else 0
 

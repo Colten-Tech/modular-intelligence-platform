@@ -88,23 +88,31 @@ class StressRecoveryScorer(BaseModule):
         today_cutoff = now - timedelta(days=1)
         baseline_cutoff = now - timedelta(days=baseline_days + 1)
 
-        # Fetch today's and baseline voice recordings
+        # Fetch today's and baseline voice recordings — scoped to the module instance's user
+        import uuid as _uuid
+        mid = _uuid.UUID(module_instance_id) if module_instance_id else None
         try:
+            today_filter = [VoiceRecording.recorded_at >= today_cutoff]
+            if mid is not None:
+                today_filter.append(VoiceRecording.module_id == mid)
             today_stmt = (
                 select(VoiceRecording)
-                .where(VoiceRecording.recorded_at >= today_cutoff)
+                .where(*today_filter)
                 .order_by(VoiceRecording.recorded_at.desc())
                 .limit(5)
             )
             today_result = await db_session.execute(today_stmt)
             today_recordings = today_result.scalars().all()
 
+            baseline_filter = [
+                VoiceRecording.recorded_at >= baseline_cutoff,
+                VoiceRecording.recorded_at < today_cutoff,
+            ]
+            if mid is not None:
+                baseline_filter.append(VoiceRecording.module_id == mid)
             baseline_stmt = (
                 select(VoiceRecording)
-                .where(
-                    VoiceRecording.recorded_at >= baseline_cutoff,
-                    VoiceRecording.recorded_at < today_cutoff,
-                )
+                .where(*baseline_filter)
                 .order_by(VoiceRecording.recorded_at.desc())
                 .limit(50)
             )

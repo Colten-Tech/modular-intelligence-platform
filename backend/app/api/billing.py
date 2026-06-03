@@ -78,17 +78,22 @@ PLAN_PRICES = {
 
 async def _get_or_create_stripe_customer(user_email: str, user_id: str) -> str:
     """Get existing or create new Stripe customer ID for user."""
+    import asyncio
     import stripe
 
     stripe.api_key = settings.stripe_secret_key
-    # Search for existing customer
-    customers = stripe.Customer.list(email=user_email, limit=1)
+    loop = asyncio.get_event_loop()
+
+    # Run synchronous Stripe SDK calls in a thread to avoid blocking the event loop
+    customers = await loop.run_in_executor(
+        None, lambda: stripe.Customer.list(email=user_email, limit=1)
+    )
     if customers.data:
         return customers.data[0].id
 
-    customer = stripe.Customer.create(
-        email=user_email,
-        metadata={"user_id": user_id},
+    customer = await loop.run_in_executor(
+        None,
+        lambda: stripe.Customer.create(email=user_email, metadata={"user_id": user_id}),
     )
     return customer.id
 
@@ -122,19 +127,25 @@ async def create_checkout_session(
             detail=_ERR(f"No price configured for {body.plan}/{body.interval}", "NO_PRICE_CONFIGURED"),
         )
 
+    import asyncio
+
     customer_id = await _get_or_create_stripe_customer(
         current_user["email"], current_user["id"]
     )
 
-    session = stripe.checkout.Session.create(
-        customer=customer_id,
-        payment_method_types=["card"],
-        mode="subscription",
-        line_items=[{"price": price_id, "quantity": 1}],
-        success_url=f"{settings.app_url}/billing/success?session_id={{CHECKOUT_SESSION_ID}}",
-        cancel_url=f"{settings.app_url}/billing/cancel",
-        metadata={"user_id": current_user["id"], "plan": body.plan},
-        subscription_data={"metadata": {"user_id": current_user["id"], "plan": body.plan}},
+    loop = asyncio.get_event_loop()
+    session = await loop.run_in_executor(
+        None,
+        lambda: stripe.checkout.Session.create(
+            customer=customer_id,
+            payment_method_types=["card"],
+            mode="subscription",
+            line_items=[{"price": price_id, "quantity": 1}],
+            success_url=f"{settings.app_url}/billing/success?session_id={{CHECKOUT_SESSION_ID}}",
+            cancel_url=f"{settings.app_url}/billing/cancel",
+            metadata={"user_id": current_user["id"], "plan": body.plan},
+            subscription_data={"metadata": {"user_id": current_user["id"], "plan": body.plan}},
+        ),
     )
 
     return CheckoutSessionResponse(checkout_url=session.url, session_id=session.id)
@@ -152,13 +163,19 @@ async def get_billing_portal(
     except ImportError:
         raise HTTPException(status_code=503, detail=_ERR("Stripe not available", "STRIPE_UNAVAILABLE"))
 
+    import asyncio
+
     customer_id = await _get_or_create_stripe_customer(
         current_user["email"], current_user["id"]
     )
 
-    session = stripe.billing_portal.Session.create(
-        customer=customer_id,
-        return_url=f"{settings.app_url}/billing",
+    loop = asyncio.get_event_loop()
+    session = await loop.run_in_executor(
+        None,
+        lambda: stripe.billing_portal.Session.create(
+            customer=customer_id,
+            return_url=f"{settings.app_url}/billing",
+        ),
     )
 
     return PortalSessionResponse(portal_url=session.url)
@@ -177,12 +194,16 @@ async def stripe_webhook(
     except ImportError:
         raise HTTPException(status_code=503, detail=_ERR("Stripe not available", "STRIPE_UNAVAILABLE"))
 
+    import asyncio
+
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature", "")
 
     try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, settings.stripe_webhook_secret
+        loop = asyncio.get_event_loop()
+        event = await loop.run_in_executor(
+            None,
+            lambda: stripe.Webhook.construct_event(payload, sig_header, settings.stripe_webhook_secret),
         )
     except stripe.error.SignatureVerificationError:
         raise HTTPException(
@@ -218,6 +239,7 @@ async def stripe_webhook(
 
 
 async def _handle_subscription_change(subscription: dict, event_type: str, db: AsyncSession) -> None:
+    import asyncio
     import stripe
 
     metadata = subscription.get("metadata", {})
@@ -228,7 +250,10 @@ async def _handle_subscription_change(subscription: dict, event_type: str, db: A
         customer_id = subscription.get("customer")
         if customer_id:
             try:
-                customer = stripe.Customer.retrieve(customer_id)
+                loop = asyncio.get_event_loop()
+                customer = await loop.run_in_executor(
+                    None, lambda: stripe.Customer.retrieve(customer_id)
+                )
                 user_id = customer.get("metadata", {}).get("user_id")
             except Exception:
                 pass

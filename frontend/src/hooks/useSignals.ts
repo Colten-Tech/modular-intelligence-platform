@@ -53,11 +53,11 @@ export function useMarkRead() {
 
       queryClient.setQueriesData({ queryKey: signalKeys.all }, (old: unknown) => {
         if (!old || typeof old !== 'object') return old
-        const data = old as { data?: Array<{ id: string; read: boolean }> }
-        if (data.data) {
+        const data = old as { items?: Array<{ id: string; read: boolean }> }
+        if (data.items) {
           return {
             ...data,
-            data: data.data.map((s) => (s.id === id ? { ...s, read: true } : s)),
+            items: data.items.map((s) => (s.id === id ? { ...s, read: true } : s)),
           }
         }
         return old
