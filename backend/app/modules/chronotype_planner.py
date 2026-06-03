@@ -119,7 +119,7 @@ class ChronotypePlanner(BaseModule):
     def get_ui_component_hint(self) -> str:
         return "schedule-planner"
 
-    async def run(self, config: dict, db_session) -> List[Signal]:
+    async def run(self, config: dict, db_session, module_instance_id: str = None) -> List[Signal]:
         sleep_log: List[Dict[str, str]] = config.get("sleep_log", [])
         task_categories: List[str] = config.get("task_categories", ["deep_work", "meetings", "admin"])
 

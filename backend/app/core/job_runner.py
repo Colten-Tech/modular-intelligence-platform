@@ -72,7 +72,7 @@ async def execute_module_job(module_instance_id: str, force: bool = False) -> Op
                 return None
 
             # 4. Run the module
-            signals: List[Signal] = await module_instance.run(config, db)
+            signals: List[Signal] = await module_instance.run(config, db, module_instance_id)
             _log("info", "Module run complete", module_type=module_type, signals_count=len(signals))
 
             # 5. Persist signals (dedup by content hash)

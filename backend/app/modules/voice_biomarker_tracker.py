@@ -78,7 +78,7 @@ class VoiceBiomarkerTracker(BaseModule):
     def get_ui_component_hint(self) -> str:
         return "voice-tracker"
 
-    async def run(self, config: dict, db_session) -> List[Signal]:
+    async def run(self, config: dict, db_session, module_instance_id: str = None) -> List[Signal]:
         baseline_days: int = int(config.get("baseline_days", 7))
         alert_fatigue: float = float(config.get("alert_threshold_fatigue", 0.7))
         alert_stress: float = float(config.get("alert_threshold_stress", 0.65))

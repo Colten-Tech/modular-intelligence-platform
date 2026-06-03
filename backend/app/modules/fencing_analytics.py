@@ -85,7 +85,7 @@ class FencingAnalytics(BaseModule):
     def get_ui_component_hint(self) -> str:
         return "fencing-dashboard"
 
-    async def run(self, config: dict, db_session) -> List[Signal]:
+    async def run(self, config: dict, db_session, module_instance_id: str = None) -> List[Signal]:
         weapon: str = config.get("weapon", "foil")
         track_opponents: bool = config.get("track_opponents", True)
         export_to_coach: bool = config.get("export_to_coach", False)

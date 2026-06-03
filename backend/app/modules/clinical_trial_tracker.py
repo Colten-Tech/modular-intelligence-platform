@@ -99,7 +99,7 @@ class ClinicalTrialTracker(BaseModule):
     def validate_config(self, config: dict) -> bool:
         return isinstance(config, dict)
 
-    async def run(self, config: dict, db_session) -> List[Signal]:
+    async def run(self, config: dict, db_session, module_instance_id: str = None) -> List[Signal]:
         therapeutic_areas: List[str] = config.get("therapeutic_areas", ["Oncology"])
         company_names: List[str] = config.get("company_names", [])
         min_phase: str = config.get("min_phase", "II")

@@ -22,7 +22,14 @@ class BaseModule(ABC):
     required_plan: str  # "free" | "pro" | "team"
 
     @abstractmethod
-    async def run(self, config: dict, db_session) -> List[Signal]:
+    async def run(self, config: dict, db_session, module_instance_id: Optional[str] = None) -> List[Signal]:
+        """
+        Execute the module and return a list of Signal objects.
+
+        module_instance_id: the UUID string of the Module row in the database.
+        Pass through to sub-methods that need to associate DB records (e.g.
+        RawSnapshot) with the calling module instance.
+        """
         pass
 
     @abstractmethod

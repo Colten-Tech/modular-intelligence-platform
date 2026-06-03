@@ -76,7 +76,7 @@ class StressRecoveryScorer(BaseModule):
     def get_ui_component_hint(self) -> str:
         return "stress-scorer"
 
-    async def run(self, config: dict, db_session) -> List[Signal]:
+    async def run(self, config: dict, db_session, module_instance_id: str = None) -> List[Signal]:
         baseline_days: int = int(config.get("baseline_days", 7))
         track_typing: bool = config.get("track_typing_speed", False)
         track_screen: bool = config.get("track_screen_time", False)

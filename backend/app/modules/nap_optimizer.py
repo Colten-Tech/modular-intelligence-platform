@@ -56,7 +56,7 @@ class NapOptimizer(BaseModule):
     def get_ui_component_hint(self) -> str:
         return "nap-optimizer"
 
-    async def run(self, config: dict, db_session) -> List[Signal]:
+    async def run(self, config: dict, db_session, module_instance_id: str = None) -> List[Signal]:
         from datetime import datetime, timedelta
         import math
 

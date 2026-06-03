@@ -118,7 +118,7 @@ class RealEstateSignal(BaseModule):
     def validate_config(self, config: dict) -> bool:
         return isinstance(config, dict)
 
-    async def run(self, config: dict, db_session) -> List[Signal]:
+    async def run(self, config: dict, db_session, module_instance_id: str = None) -> List[Signal]:
         sources: List[str] = config.get("sources", ["immoscout24"])
         zip_codes: List[str] = config.get("zip_codes", [])
         cities: List[str] = config.get("cities", [])

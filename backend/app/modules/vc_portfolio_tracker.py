@@ -71,7 +71,7 @@ class VCPortfolioTracker(BaseModule):
     def validate_config(self, config: dict) -> bool:
         return isinstance(config, dict)
 
-    async def run(self, config: dict, db_session) -> List[Signal]:
+    async def run(self, config: dict, db_session, module_instance_id: str = None) -> List[Signal]:
         vc_urls: List[str] = config.get("vc_firm_urls", [])
         track_exits: bool = config.get("track_exits", True)
         track_new: bool = config.get("track_new_portfolio", True)

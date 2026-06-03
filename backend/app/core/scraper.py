@@ -97,39 +97,53 @@ class ScraperEngine:
         user_agent: str,
         wait_selector: Optional[str],
     ) -> str:
-        from playwright.async_api import async_playwright
+        # Graceful fallback: if Playwright isn't installed OR browser binaries are
+        # absent (e.g. Render/Docker without `playwright install`), fall through to httpx.
+        try:
+            from playwright.async_api import async_playwright
+        except ImportError:
+            logger.warning("Playwright package not installed — falling back to httpx for %s", url)
+            return await self._httpx_fetch(url, user_agent)
 
-        async with async_playwright() as p:
-            browser = await p.chromium.launch(
-                headless=True,
-                args=[
-                    "--no-sandbox",
-                    "--disable-setuid-sandbox",
-                    "--disable-blink-features=AutomationControlled",
-                ],
+        try:
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(
+                    headless=True,
+                    args=[
+                        "--no-sandbox",
+                        "--disable-setuid-sandbox",
+                        "--disable-blink-features=AutomationControlled",
+                    ],
+                )
+                context = await browser.new_context(
+                    user_agent=user_agent,
+                    viewport={"width": 1280, "height": 800},
+                    locale="en-US",
+                )
+                page = await context.new_page()
+
+                try:
+                    await page.goto(url, timeout=REQUEST_TIMEOUT, wait_until="domcontentloaded")
+
+                    if wait_selector:
+                        try:
+                            await page.wait_for_selector(wait_selector, timeout=10_000)
+                        except Exception:
+                            pass  # Continue even if selector not found
+
+                    # Extra wait for dynamic content
+                    await page.wait_for_timeout(1500)
+                    html = await page.content()
+                    return html
+                finally:
+                    await browser.close()
+        except Exception as exc:
+            # Browser binaries not present, sandbox failure, or any other Playwright error.
+            # Fall back to httpx so the module still gets *some* HTML rather than crashing.
+            logger.warning(
+                "Playwright launch failed (%s) — falling back to httpx for %s", exc, url
             )
-            context = await browser.new_context(
-                user_agent=user_agent,
-                viewport={"width": 1280, "height": 800},
-                locale="en-US",
-            )
-            page = await context.new_page()
-
-            try:
-                await page.goto(url, timeout=REQUEST_TIMEOUT, wait_until="domcontentloaded")
-
-                if wait_selector:
-                    try:
-                        await page.wait_for_selector(wait_selector, timeout=10_000)
-                    except Exception:
-                        pass  # Continue even if selector not found
-
-                # Extra wait for dynamic content
-                await page.wait_for_timeout(1500)
-                html = await page.content()
-                return html
-            finally:
-                await browser.close()
+            return await self._httpx_fetch(url, user_agent)
 
     async def _httpx_fetch(self, url: str, user_agent: str) -> str:
         import httpx

@@ -83,7 +83,7 @@ class FounderMovementTracker(BaseModule):
     def validate_config(self, config: dict) -> bool:
         return isinstance(config, dict)
 
-    async def run(self, config: dict, db_session) -> List[Signal]:
+    async def run(self, config: dict, db_session, module_instance_id: str = None) -> List[Signal]:
         linkedin_urls: List[str] = config.get("founder_linkedin_urls", [])
         founder_names: List[str] = config.get("founder_names", [])
         alert_on: List[str] = config.get("alert_on", ["role_change", "new_venture", "departure"])

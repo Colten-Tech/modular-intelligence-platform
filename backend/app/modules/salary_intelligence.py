@@ -98,7 +98,7 @@ class SalaryIntelligence(BaseModule):
     def get_ui_component_hint(self) -> str:
         return "salary-query"
 
-    async def run(self, config: dict, db_session) -> List[Signal]:
+    async def run(self, config: dict, db_session, module_instance_id: str = None) -> List[Signal]:
         roles: List[str] = config.get("roles_to_track", ["Software Engineer"])
         cities: List[str] = config.get("cities", ["Berlin"])
 

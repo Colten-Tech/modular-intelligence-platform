@@ -116,7 +116,7 @@ class StartupSignalTracker(BaseModule):
     def validate_config(self, config: dict) -> bool:
         return isinstance(config, dict)
 
-    async def run(self, config: dict, db_session) -> List[Signal]:
+    async def run(self, config: dict, db_session, module_instance_id: str = None) -> List[Signal]:
         target_companies: List[str] = config.get("target_companies", [])
         signal_types: List[str] = config.get("signal_types", ["funding", "hiring_surge", "executive_change"])
         min_score: float = config.get("min_score", 60) / 100.0
@@ -130,7 +130,9 @@ class StartupSignalTracker(BaseModule):
         for company_url in target_companies[:10]:  # Cap at 10 per run
             try:
                 signals.extend(
-                    await self._analyze_company(company_url, signal_types, min_score, db_session)
+                    await self._analyze_company(
+                        company_url, signal_types, min_score, db_session, module_instance_id
+                    )
                 )
             except Exception as exc:
                 logger.warning(f"Failed to analyze company {company_url}: {exc}")
@@ -156,6 +158,7 @@ class StartupSignalTracker(BaseModule):
         signal_types: List[str],
         min_score: float,
         db_session,
+        module_instance_id: str = None,
     ) -> List[Signal]:
         signals = []
 
@@ -191,20 +194,25 @@ class StartupSignalTracker(BaseModule):
             except Exception:
                 old_html = ""
 
-            # Save new snapshot
-            try:
-                new_snap = RawSnapshot(
-                    id=uuid.uuid4(),
-                    module_id=None,  # will be set by job runner context
-                    url=url,
-                    content_hash=current_hash,
-                    raw_html=html[:500_000],  # cap at 500KB
-                    fetched_at=datetime.now(timezone.utc),
-                )
-                db_session.add(new_snap)
-                await db_session.commit()
-            except Exception as exc:
-                logger.warning(f"Could not save snapshot for {url}: {exc}")
+            # Save new snapshot (best-effort — skip if module_instance_id is unknown)
+            if module_instance_id:
+                try:
+                    new_snap = RawSnapshot(
+                        id=uuid.uuid4(),
+                        module_id=uuid.UUID(module_instance_id),
+                        url=url,
+                        content_hash=current_hash,
+                        raw_html=html[:500_000],  # cap at 500KB
+                        fetched_at=datetime.now(timezone.utc),
+                    )
+                    db_session.add(new_snap)
+                    await db_session.commit()
+                except Exception as exc:
+                    logger.warning(f"Could not save snapshot for {url}: {exc}")
+                    try:
+                        await db_session.rollback()
+                    except Exception:
+                        pass
         else:
             old_html = ""
 

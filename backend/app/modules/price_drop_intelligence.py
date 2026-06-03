@@ -83,7 +83,7 @@ class PriceDropIntelligence(BaseModule):
     def validate_config(self, config: dict) -> bool:
         return isinstance(config, dict)
 
-    async def run(self, config: dict, db_session) -> List[Signal]:
+    async def run(self, config: dict, db_session, module_instance_id: str = None) -> List[Signal]:
         target_urls: List[str] = config.get("target_urls", [])
         tool_names: List[str] = config.get("tool_names", [])
         alert_threshold: float = float(config.get("alert_threshold", 5))

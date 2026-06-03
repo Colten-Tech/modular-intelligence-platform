@@ -75,7 +75,7 @@ class ResearcherSecondBrain(BaseModule):
     def get_ui_component_hint(self) -> str:
         return "second-brain"
 
-    async def run(self, config: dict, db_session) -> List[Signal]:
+    async def run(self, config: dict, db_session, module_instance_id: str = None) -> List[Signal]:
         auto_fetch: bool = config.get("auto_fetch_arxiv", False)
         tags: List[str] = config.get("default_tags", ["machine learning"])
         arxiv_ids: List[str] = config.get("arxiv_ids", [])
