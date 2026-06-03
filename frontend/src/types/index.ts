@@ -118,6 +118,9 @@ export interface JSONSchemaProperty {
   minimum?: number
   maximum?: number
   format?: string
+  /** Explicit wizard section hint set in the backend schema.
+   *  'source' → Data Sources step, 'filter' → Filters step (default). */
+  section?: 'source' | 'filter'
 }
 
 export interface PaginatedResponse<T> {

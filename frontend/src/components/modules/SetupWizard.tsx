@@ -43,10 +43,24 @@ export function SetupWizard({ module, onClose, onSuccess }: SetupWizardProps) {
   const clusterColor = CLUSTER_COLORS[module.cluster] ?? 'var(--text-muted)'
   const progress = ((step + 1) / STEPS.length) * 100
 
-  // Split schema properties into data-source fields vs filter fields
+  // Split schema properties into data-source fields vs filter fields.
+  // Precedence: explicit `section` annotation > key-name heuristics.
   const allProps = Object.entries(module.config_schema.properties ?? {})
   const dataSrcKeys = allProps
-    .filter(([k]) => k.includes('url') || k.includes('api_key') || k.includes('source'))
+    .filter(([k, v]) =>
+      v.section === 'source' ||
+      (v.section !== 'filter' && (
+        k.includes('url') ||
+        k.includes('api_key') ||
+        k.includes('source') ||
+        k.startsWith('target_') ||
+        k.startsWith('zip_') ||
+        k === 'cities' ||
+        k === 'founder_names' ||
+        k === 'arxiv_ids' ||
+        k === 'roles_to_track'
+      ))
+    )
     .map(([k]) => k)
   const filterKeys = allProps
     .filter(([k]) => !dataSrcKeys.includes(k) && !k.includes('schedule'))

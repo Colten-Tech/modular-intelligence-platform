@@ -74,18 +74,25 @@ async def enable_module(
     if mod is None:
         raise HTTPException(status_code=404, detail=_ERR(f"Module '{module_id}' not found", "MODULE_NOT_FOUND"))
 
-    # Plan check
-    plan = current_user.get("plan", "free")
-    plan_hierarchy = {"free": 0, "pro": 1, "team": 2}
-    required_level = plan_hierarchy.get(mod.required_plan, 0)
-    user_level = plan_hierarchy.get(plan, 0)
-    if user_level < required_level:
-        raise HTTPException(
-            status_code=403,
-            detail=_ERR(f"Module requires '{mod.required_plan}' plan", "PLAN_REQUIRED"),
-        )
-
     user_id = uuid.UUID(current_user["id"])
+
+    # Fetch plan and admin flag from DB — the DB is the source of truth.
+    # The JWT user_metadata.plan may be stale (e.g. after a manual plan upgrade).
+    db_user_result = await db.execute(select(User).where(User.id == user_id))
+    db_user = db_user_result.scalar_one_or_none()
+    plan = db_user.plan if db_user else current_user.get("plan", "free")
+    is_admin = db_user.is_admin if db_user else False
+
+    # Plan check — admins bypass all plan restrictions
+    if not is_admin:
+        plan_hierarchy = {"free": 0, "pro": 1, "team": 2}
+        required_level = plan_hierarchy.get(mod.required_plan, 0)
+        user_level = plan_hierarchy.get(plan, 0)
+        if user_level < required_level:
+            raise HTTPException(
+                status_code=403,
+                detail=_ERR(f"Module requires '{mod.required_plan}' plan", "PLAN_REQUIRED"),
+            )
 
     # Check if already enabled
     existing_stmt = select(Module).where(
