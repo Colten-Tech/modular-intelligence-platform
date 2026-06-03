@@ -177,16 +177,20 @@ async def trigger_module_run(
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Trigger an immediate module run in the background (addressed by instance UUID)."""
+    """Trigger an immediate module run in the background (addressed by instance UUID).
+
+    Works even on paused modules — a manual run never modifies the enabled state.
+    """
     user_id = uuid.UUID(current_user["id"])
-    stmt = select(Module).where(Module.id == uuid.UUID(instance_id), Module.user_id == user_id, Module.enabled == True)
+    # Do NOT filter by enabled — manual runs should work regardless of pause state.
+    stmt = select(Module).where(Module.id == uuid.UUID(instance_id), Module.user_id == user_id)
     result = await db.execute(stmt)
     module_row = result.scalar_one_or_none()
 
     if module_row is None:
-        raise HTTPException(status_code=404, detail=_ERR("Module not found or not enabled", "MODULE_NOT_ENABLED"))
+        raise HTTPException(status_code=404, detail=_ERR("Module not found", "MODULE_NOT_FOUND"))
 
-    background_tasks.add_task(execute_module_job, str(module_row.id))
+    background_tasks.add_task(execute_module_job, str(module_row.id), force=True)
     return {"message": "Module run triggered", "module_instance_id": str(module_row.id)}
 
 

@@ -20,13 +20,16 @@ def _log(level: str, message: str, **kwargs) -> None:
     getattr(logger, level.lower(), logger.info)(json.dumps(record))
 
 
-async def execute_module_job(module_instance_id: str) -> Optional[str]:
+async def execute_module_job(module_instance_id: str, force: bool = False) -> Optional[str]:
     """
     Execute a single module job identified by module_instance_id (UUID string).
     Returns job_id on success, None on failure.
+
+    force=True: run even if the module is currently paused (used for manual "Run Now").
+    force=False (default): respect the enabled flag (used for scheduled runs).
     """
     job_id = str(uuid.uuid4())
-    _log("info", "Job starting", module_instance_id=module_instance_id, job_id=job_id)
+    _log("info", "Job starting", module_instance_id=module_instance_id, job_id=job_id, forced=force)
 
     async with AsyncSessionLocal() as db:
         try:
@@ -39,7 +42,7 @@ async def execute_module_job(module_instance_id: str) -> Optional[str]:
                 _log("error", "Module instance not found", module_instance_id=module_instance_id)
                 return None
 
-            if not module_row.enabled:
+            if not module_row.enabled and not force:
                 _log("info", "Module disabled, skipping", module_instance_id=module_instance_id)
                 return None
 
