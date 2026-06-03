@@ -2,8 +2,9 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import * as api from '@/lib/api'
-import type { ModuleDefinition, ModuleInstance } from '@/types'
+import type { Job, ModuleDefinition, ModuleInstance, PaginatedResponse } from '@/types'
 import { toast } from 'sonner'
+import { jobKeys } from '@/hooks/useJobs'
 
 export const moduleKeys = {
   all: ['modules'] as const,
@@ -90,16 +91,36 @@ export function useRunModule() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (instanceId: string) => api.runModule(instanceId),
-    onSuccess: () => {
+    mutationFn: ({ instanceId, moduleType }: { instanceId: string; moduleType?: string }) =>
+      api.runModule(instanceId),
+    onSuccess: (data, { moduleType }) => {
       queryClient.invalidateQueries({ queryKey: moduleKeys.all })
-      toast.success('Module job started')
 
-      // The backend returns 202 *before* the background task creates the job
-      // row. Delay the first invalidation so the DB write has time to land,
-      // then poll again a few seconds later to catch any stragglers.
-      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['jobs'] }), 1500)
-      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['jobs'] }), 5000)
+      // Inject the new job directly into every cached jobs list so it
+      // appears as "running" immediately — no polling delay needed.
+      const runningJob: Job = {
+        id: data.job_id,
+        module_id: data.module_instance_id,
+        status: 'running',
+        started_at: new Date().toISOString(),
+        signals_found: 0,
+        module_type: moduleType,
+      }
+      queryClient.setQueriesData<PaginatedResponse<Job>>(
+        { queryKey: ['jobs'], exact: false },
+        (old) => {
+          if (!old) return old
+          // Avoid duplicates if the query already refetched
+          if (old.items.some((j) => j.id === data.job_id)) return old
+          return { ...old, items: [runningJob, ...old.items], total: old.total + 1 }
+        }
+      )
+
+      // Invalidate after a short delay so the live DB state replaces the
+      // optimistic entry once the background task has committed.
+      setTimeout(() => queryClient.invalidateQueries({ queryKey: ['jobs'] }), 3000)
+
+      toast.success('Module job started')
     },
     onError: (err: Error) => {
       toast.error(`Failed to run module: ${err.message}`)

@@ -11,6 +11,7 @@ from app.core.module_registry import module_registry
 from app.core.scheduler import scheduler_instance
 from app.core.job_runner import execute_module_job
 from app.models.database import get_db, Job, Module, Signal, User
+from datetime import datetime, timezone
 from app.models.schemas import (
     EnableModuleRequest,
     ModuleConfigUpdate,
@@ -180,6 +181,8 @@ async def trigger_module_run(
     """Trigger an immediate module run in the background (addressed by instance UUID).
 
     Works even on paused modules — a manual run never modifies the enabled state.
+    Creates the Job row synchronously so the caller can immediately display it
+    as 'running' without waiting for the background task to write to the DB.
     """
     user_id = uuid.UUID(current_user["id"])
     # Do NOT filter by enabled — manual runs should work regardless of pause state.
@@ -190,8 +193,27 @@ async def trigger_module_run(
     if module_row is None:
         raise HTTPException(status_code=404, detail=_ERR("Module not found", "MODULE_NOT_FOUND"))
 
-    background_tasks.add_task(execute_module_job, str(module_row.id), force=True)
-    return {"message": "Module run triggered", "module_instance_id": str(module_row.id)}
+    # Create the job record NOW (before the background task runs) so the UI
+    # can show it as "running" as soon as it receives this 202 response.
+    job_id = str(uuid.uuid4())
+    job = Job(
+        id=uuid.UUID(job_id),
+        module_id=module_row.id,
+        status="running",
+        started_at=datetime.now(timezone.utc),
+        signals_found=0,
+    )
+    db.add(job)
+    await db.commit()
+
+    # The background task skips job creation (job already exists) and goes
+    # straight to running the module logic.
+    background_tasks.add_task(execute_module_job, str(module_row.id), force=True, job_id=job_id)
+    return {
+        "message": "Module run triggered",
+        "job_id": job_id,
+        "module_instance_id": str(module_row.id),
+    }
 
 
 @router.get("/modules/{instance_id}/signals", response_model=SignalListResponse)

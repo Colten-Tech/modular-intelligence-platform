@@ -20,12 +20,15 @@ export function useJobs(params: JobFilters = {}) {
   })
 }
 
-export function useJobLogs(jobId: string | null) {
+export function useJobLogs(jobId: string | null, isRunning = false) {
   return useQuery({
     queryKey: jobKeys.logs(jobId ?? ''),
     queryFn: () => api.getJobLogs(jobId!),
     enabled: !!jobId,
-    staleTime: 30_000,
+    // Poll quickly while the job is running so the log viewer updates live;
+    // switch to a long stale time once the job is in a terminal state.
+    refetchInterval: isRunning ? 2_000 : false,
+    staleTime: isRunning ? 1_000 : 60_000,
   })
 }
 

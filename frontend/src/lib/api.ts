@@ -114,7 +114,9 @@ export async function updateModuleConfig(
   })
 }
 
-export async function runModule(instanceId: string): Promise<void> {
+export async function runModule(
+  instanceId: string
+): Promise<{ job_id: string; module_instance_id: string }> {
   return request(`/api/modules/${instanceId}/run`, { method: 'POST' })
 }
 

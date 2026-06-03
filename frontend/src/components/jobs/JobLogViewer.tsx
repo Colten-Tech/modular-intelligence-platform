@@ -10,13 +10,13 @@ import type { JobLog } from '@/types'
 interface JobLogViewerProps {
   jobId: string
   height?: number
+  isRunning?: boolean
 }
 
-const LOG_LEVEL_STYLES: Record<JobLog['level'], { color: string; label: string }> = {
-  INFO: { color: 'var(--text-muted)', label: 'INFO' },
-  WARN: { color: 'var(--warning)', label: 'WARN' },
-  ERROR: { color: 'var(--error)', label: 'ERR ' },
-  SUCCESS: { color: 'var(--success)', label: 'OK  ' },
+const LOG_LEVEL_STYLES: Record<string, { color: string; label: string }> = {
+  INFO:    { color: 'var(--text-muted)', label: 'INFO   ' },
+  WARNING: { color: 'var(--warning)',    label: 'WARNING' },
+  ERROR:   { color: 'var(--error)',      label: 'ERROR  ' },
 }
 
 function LogRow({ index, style, data }: ListChildComponentProps<JobLog[]>) {
@@ -29,31 +29,37 @@ function LogRow({ index, style, data }: ListChildComponentProps<JobLog[]>) {
       className="flex items-baseline gap-2 px-3 text-[11px] font-mono hover:bg-bg-hover transition-colors"
     >
       <span className="text-text-muted shrink-0 tabular-nums">
-        {log.timestamp.slice(11, 19)}
+        {new Date(log.timestamp).toLocaleTimeString('en-GB', { hour12: false })}
       </span>
       <span
-        className="shrink-0 font-medium"
+        className="shrink-0 font-medium w-[52px]"
         style={{ color: levelStyle.color }}
       >
-        [{levelStyle.label}]
+        {levelStyle.label}
       </span>
       <span
         className={cn(
           'flex-1 truncate',
-          log.level === 'ERROR' && 'text-error/90',
-          log.level === 'WARN' && 'text-warning/90',
-          log.level === 'SUCCESS' && 'text-success/90',
-          log.level === 'INFO' && 'text-text-secondary'
+          log.level === 'ERROR'   && 'text-error/90',
+          log.level === 'WARNING' && 'text-warning/90',
+          log.level === 'INFO'    && 'text-text-secondary'
         )}
       >
         {log.message}
+        {log.data && Object.keys(log.data).length > 0 && (
+          <span className="ml-2 text-text-muted">
+            {Object.entries(log.data)
+              .map(([k, v]) => `${k}=${JSON.stringify(v)}`)
+              .join(' ')}
+          </span>
+        )}
       </span>
     </div>
   )
 }
 
-export function JobLogViewer({ jobId, height = 300 }: JobLogViewerProps) {
-  const { data: logs, isLoading, error } = useJobLogs(jobId)
+export function JobLogViewer({ jobId, height = 300, isRunning = false }: JobLogViewerProps) {
+  const { data: logs, isLoading, error } = useJobLogs(jobId, isRunning)
 
   function handleCopyAll() {
     if (!logs?.length) return
@@ -79,8 +85,14 @@ export function JobLogViewer({ jobId, height = 300 }: JobLogViewerProps) {
     >
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-bg-surface">
-        <span className="text-[10px] text-text-muted uppercase tracking-wide">
+        <span className="text-[10px] text-text-muted uppercase tracking-wide flex items-center gap-2">
           Job Logs {logs?.length ? `— ${logs.length} lines` : ''}
+          {isRunning && (
+            <span className="inline-flex items-center gap-1 text-[10px] text-accent-consumer">
+              <Loader2 className="w-2.5 h-2.5 animate-spin" />
+              live
+            </span>
+          )}
         </span>
         <div className="flex items-center gap-2">
           <button

@@ -20,15 +20,23 @@ def _log(level: str, message: str, **kwargs) -> None:
     getattr(logger, level.lower(), logger.info)(json.dumps(record))
 
 
-async def execute_module_job(module_instance_id: str, force: bool = False) -> Optional[str]:
+async def execute_module_job(
+    module_instance_id: str,
+    force: bool = False,
+    job_id: Optional[str] = None,
+) -> Optional[str]:
     """
     Execute a single module job identified by module_instance_id (UUID string).
     Returns job_id on success, None on failure.
 
     force=True: run even if the module is currently paused (used for manual "Run Now").
     force=False (default): respect the enabled flag (used for scheduled runs).
+
+    job_id: if the caller (trigger_module_run) already created the Job row and
+            returned it to the client, pass that same UUID here so we reuse the
+            existing row instead of inserting a duplicate.
     """
-    job_id = str(uuid.uuid4())
+    job_id = job_id or str(uuid.uuid4())
     _log("info", "Job starting", module_instance_id=module_instance_id, job_id=job_id, forced=force)
 
     async with AsyncSessionLocal() as db:
@@ -50,16 +58,21 @@ async def execute_module_job(module_instance_id: str, force: bool = False) -> Op
             config = module_row.config or {}
             user_id = module_row.user_id
 
-            # 2. Create job record (status=running)
-            job = Job(
-                id=uuid.UUID(job_id),
-                module_id=module_row.id,
-                status="running",
-                started_at=datetime.now(timezone.utc),
-                signals_found=0,
-            )
-            db.add(job)
-            await db.commit()
+            # 2. Load or create the job record
+            # trigger_module_run creates the row synchronously so the UI sees
+            # "running" instantly; scheduled runs don't pre-create it.
+            job_result = await db.execute(select(Job).where(Job.id == uuid.UUID(job_id)))
+            job = job_result.scalar_one_or_none()
+            if job is None:
+                job = Job(
+                    id=uuid.UUID(job_id),
+                    module_id=module_row.id,
+                    status="running",
+                    started_at=datetime.now(timezone.utc),
+                    signals_found=0,
+                )
+                db.add(job)
+                await db.commit()
 
             # 3. Get module from registry
             module_instance = module_registry.get_module(module_type)

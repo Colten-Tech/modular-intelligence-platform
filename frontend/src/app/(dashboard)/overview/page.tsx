@@ -24,10 +24,9 @@ export default function OverviewPage() {
   const [clusterFilter, setClusterFilter] = useState<Cluster | 'all'>('all')
   const [search, setSearch] = useState('')
 
-  const { data: signalsData, isLoading: signalsLoading } = useSignals({
-    archived: false,
-    cluster: clusterFilter !== 'all' ? clusterFilter : undefined,
-  })
+  // Backend always excludes archived signals; cluster is a client-side filter
+  // because the /signals endpoint doesn't accept a cluster param.
+  const { data: signalsData, isLoading: signalsLoading } = useSignals({})
 
   const { data: stats, isLoading: statsLoading } = useUserStats()
   const { data: modulesData } = useModules()
@@ -36,19 +35,32 @@ export default function OverviewPage() {
   const signals = signalsData?.items ?? []
   const unreadCount = signals.filter((s) => !s.read).length
 
-  const filtered = search
-    ? signals.filter(
-        (s) =>
-          s.title.toLowerCase().includes(search.toLowerCase()) ||
-          s.body.toLowerCase().includes(search.toLowerCase())
-      )
-    : signals
+  // Build a module_type → cluster map so we can filter signals by cluster
+  // client-side (the /signals API doesn't accept a cluster param).
+  const moduleClusterMap = new Map(
+    (modulesData?.definitions ?? []).map((d) => [d.module_id, d.cluster])
+  )
+
+  const filtered = signals.filter((s) => {
+    if (clusterFilter !== 'all') {
+      const cluster = moduleClusterMap.get(s.module_type ?? '')
+      if (cluster !== clusterFilter) return false
+    }
+    if (search) {
+      const q = search.toLowerCase()
+      return s.title.toLowerCase().includes(q) || s.body.toLowerCase().includes(q)
+    }
+    return true
+  })
 
   const activeInstances = modulesData?.instances.filter((i) => i.enabled) ?? []
 
   function handleRunAll() {
     if (activeInstances.length === 0) return
-    activeInstances.forEach((inst) => runModule(inst.id))
+    activeInstances.forEach((inst) => {
+      const def = modulesData?.definitions.find((d) => d.module_id === inst.module_type)
+      runModule({ instanceId: inst.id, moduleType: def?.display_name })
+    })
     toast.success(`Started ${activeInstances.length} module${activeInstances.length !== 1 ? 's' : ''}`)
   }
 

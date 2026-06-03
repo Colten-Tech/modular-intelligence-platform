@@ -148,7 +148,7 @@ export default function ModulePage() {
         {/* Action buttons */}
         <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
           <button
-            onClick={() => runModule(instance.id)}
+            onClick={() => runModule({ instanceId: instance.id, moduleType: definition?.display_name })}
             disabled={running || moduleStatus === 'running'}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-b2b/10 border border-accent-b2b/20 text-accent-b2b text-xs rounded hover:bg-accent-b2b/20 transition-colors disabled:opacity-50"
           >
