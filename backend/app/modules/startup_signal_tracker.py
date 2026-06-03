@@ -73,6 +73,17 @@ class StartupSignalTracker(BaseModule):
                 "description": "Add the website URLs or names of startups you want to monitor, e.g. https://www.celonis.com or 'Personio'. Enter one company per entry.",
                 "items": {"type": "string"},
             },
+            "news_sources": {
+                "type": "array",
+                "title": "News & data sources",
+                "section": "source",
+                "description": "Choose which intelligence sources to check for startup signals. Company websites are always scraped directly. Additional sources broaden coverage with press and funding data.",
+                "items": {
+                    "type": "string",
+                    "enum": ["company_website", "techcrunch", "crunchbase", "linkedin", "handelsblatt"],
+                },
+                "default": ["company_website", "techcrunch"],
+            },
             "regions": {
                 "type": "array",
                 "title": "Regions",

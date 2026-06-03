@@ -95,6 +95,17 @@ class GrantFundingTracker(BaseModule):
                 "items": {"type": "string"},
                 "default": ["Germany", "EU"],
             },
+            "sources": {
+                "type": "array",
+                "title": "Grant databases to search",
+                "section": "source",
+                "description": "Choose which funding databases to search. EU Horizon covers European research grants. BMBF covers German federal innovation funding. EXIST is specifically for university spin-offs and early-stage startups.",
+                "items": {
+                    "type": "string",
+                    "enum": ["eu_horizon", "bmbf", "exist"],
+                },
+                "default": ["eu_horizon", "bmbf", "exist"],
+            },
             "min_relevance": {
                 "type": "number",
                 "title": "Minimum relevance score (0–1)",

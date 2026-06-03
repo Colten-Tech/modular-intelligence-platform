@@ -46,7 +46,15 @@ DEMO_SIGNALS = [
     ),
 ]
 
-IMMOSCOUT_SEARCH_URL = "https://www.immobilienscout24.de/Suche/de"
+SOURCE_BASE_URLS = {
+    "immoscout24": "https://www.immobilienscout24.de/Suche/de",
+    "immowelt":    "https://www.immowelt.de/suche",
+    "immonet":     "https://www.immonet.de/immobiliensuche",
+    "kleinanzeigen": "https://www.kleinanzeigen.de/s-immobilien",
+}
+
+# Legacy alias kept for internal calls
+IMMOSCOUT_SEARCH_URL = SOURCE_BASE_URLS["immoscout24"]
 
 
 class RealEstateSignal(BaseModule):
@@ -63,15 +71,28 @@ class RealEstateSignal(BaseModule):
     config_schema = {
         "type": "object",
         "properties": {
+            "sources": {
+                "type": "array",
+                "title": "Property portals to search",
+                "section": "source",
+                "description": "Choose which German property portals to scrape. ImmoScout24 has the widest inventory. Immowelt and Immonet often list different properties. Kleinanzeigen picks up private/off-market listings.",
+                "items": {
+                    "type": "string",
+                    "enum": ["immoscout24", "immowelt", "immonet", "kleinanzeigen"],
+                },
+                "default": ["immoscout24"],
+            },
             "zip_codes": {
                 "type": "array",
                 "title": "German zip codes to monitor",
+                "section": "source",
                 "description": "Enter German postal codes for the areas you want to track, e.g. '80331' for central München. Add one zip code per entry.",
                 "items": {"type": "string"},
             },
             "cities": {
                 "type": "array",
                 "title": "Cities to monitor",
+                "section": "source",
                 "description": "Enter the names of German cities to monitor for real estate listings, e.g. 'München' or 'Berlin'. Add one city per entry.",
                 "items": {"type": "string"},
             },
@@ -98,6 +119,7 @@ class RealEstateSignal(BaseModule):
         return isinstance(config, dict)
 
     async def run(self, config: dict, db_session) -> List[Signal]:
+        sources: List[str] = config.get("sources", ["immoscout24"])
         zip_codes: List[str] = config.get("zip_codes", [])
         cities: List[str] = config.get("cities", [])
         property_types: List[str] = config.get("property_types", ["apartment"])
@@ -107,52 +129,54 @@ class RealEstateSignal(BaseModule):
             return DEMO_SIGNALS
 
         signals: List[Signal] = []
+        locations = [("city", c) for c in cities[:3]] + [("zip", z) for z in zip_codes[:3]]
 
-        for city in cities[:3]:
-            for prop_type in property_types[:2]:
-                try:
-                    city_signals = await self._search_immoscout(
-                        city=city,
-                        zip_code=None,
-                        property_type=prop_type,
-                        max_price_sqm=max_price_sqm,
-                        db_session=db_session,
-                    )
-                    signals.extend(city_signals)
-                except Exception as exc:
-                    logger.warning(f"ImmoScout search failed for {city}/{prop_type}: {exc}")
-
-        for zip_code in zip_codes[:3]:
-            try:
-                zip_signals = await self._search_immoscout(
-                    city=None,
-                    zip_code=zip_code,
-                    property_type=property_types[0] if property_types else "apartment",
-                    max_price_sqm=max_price_sqm,
-                    db_session=db_session,
-                )
-                signals.extend(zip_signals)
-            except Exception as exc:
-                logger.warning(f"ImmoScout search failed for zip {zip_code}: {exc}")
+        for source in sources:
+            base_url = SOURCE_BASE_URLS.get(source, IMMOSCOUT_SEARCH_URL)
+            for loc_type, loc_value in locations:
+                for prop_type in property_types[:2]:
+                    try:
+                        new_signals = await self._search_portal(
+                            source=source,
+                            base_url=base_url,
+                            city=loc_value if loc_type == "city" else None,
+                            zip_code=loc_value if loc_type == "zip" else None,
+                            property_type=prop_type,
+                            max_price_sqm=max_price_sqm,
+                            db_session=db_session,
+                        )
+                        signals.extend(new_signals)
+                    except Exception as exc:
+                        logger.warning(f"{source} search failed for {loc_value}/{prop_type}: {exc}")
 
         return signals if signals else DEMO_SIGNALS
 
-    async def _search_immoscout(
+    async def _search_portal(
         self,
+        source: str,
+        base_url: str,
         city: Optional[str],
         zip_code: Optional[str],
         property_type: str,
         max_price_sqm: float,
         db_session,
     ) -> List[Signal]:
-        type_path_map = {
-            "apartment": "wohnung-kaufen",
-            "house": "haus-kaufen",
-            "commercial": "gewerbe-kaufen",
-        }
-        path = type_path_map.get(property_type, "wohnung-kaufen")
-        search_term = city or zip_code or "Deutschland"
-        url = f"{IMMOSCOUT_SEARCH_URL}/{path}?q={search_term.replace(' ', '+')}"
+        search_term = (city or zip_code or "Deutschland").replace(" ", "+")
+
+        # Build a sensible search URL for each portal
+        if source == "immoscout24":
+            type_path = {"apartment": "wohnung-kaufen", "house": "haus-kaufen", "commercial": "gewerbe-kaufen"}
+            url = f"{base_url}/{type_path.get(property_type, 'wohnung-kaufen')}?q={search_term}"
+        elif source == "immowelt":
+            type_path = {"apartment": "wohnungen/kaufen", "house": "haeuser/kaufen", "commercial": "gewerbeimmobilien/kaufen"}
+            url = f"{base_url}/{type_path.get(property_type, 'wohnungen/kaufen')}?lage={search_term}"
+        elif source == "immonet":
+            type_path = {"apartment": "eigentumswohnung", "house": "haus-kaufen", "commercial": "gewerbeimmobilien"}
+            url = f"{base_url}/{type_path.get(property_type, 'eigentumswohnung')}?q={search_term}"
+        elif source == "kleinanzeigen":
+            url = f"{base_url}/{search_term.lower()}"
+        else:
+            url = f"{base_url}?q={search_term}"
 
         try:
             html = await scraper_engine.fetch(url, js_render=True, wait_selector="[data-testid='result-list']")
@@ -192,8 +216,11 @@ class RealEstateSignal(BaseModule):
             "required": ["listings", "market_summary"],
         }
 
+        portal_label = {"immoscout24": "ImmoScout24", "immowelt": "Immowelt",
+                        "immonet": "Immonet", "kleinanzeigen": "Kleinanzeigen"}.get(source, source)
+
         system_prompt = (
-            f"Extract real estate listings and market summary from ImmoScout24 search results. "
+            f"Extract real estate listings and market summary from {portal_label} search results. "
             f"Location: {city or zip_code}. Property type: {property_type}. "
             f"Focus on listings at or below {max_price_sqm} EUR/sqm. "
             "Summarize market trends (price direction, availability, notable patterns)."
@@ -237,11 +264,13 @@ class RealEstateSignal(BaseModule):
 
         return [
             Signal(
-                title=f"{city or zip_code}: {len(affordable)} listings ≤€{max_price_sqm}/sqm — {total} total",
+                title=f"[{portal_label}] {city or zip_code}: {len(affordable)} listings ≤€{max_price_sqm}/sqm — {total} total",
                 body="\n".join(body_lines),
                 score=score,
                 source_url=url,
                 metadata={
+                    "source": source,
+                    "portal": portal_label,
                     "city": city,
                     "zip_code": zip_code,
                     "property_type": property_type,

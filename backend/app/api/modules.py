@@ -10,7 +10,7 @@ from app.auth.middleware import get_current_user
 from app.core.module_registry import module_registry
 from app.core.scheduler import scheduler_instance
 from app.core.job_runner import execute_module_job
-from app.models.database import get_db, Job, Module, Signal
+from app.models.database import get_db, Job, Module, Signal, User
 from app.models.schemas import (
     EnableModuleRequest,
     ModuleConfigUpdate,
