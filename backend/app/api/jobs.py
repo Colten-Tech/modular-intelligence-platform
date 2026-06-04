@@ -15,7 +15,8 @@ from app.models.schemas import JobListResponse, JobLogEntry, JobResponse
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-_ERR = lambda msg, code, details=None: {"error": msg, "code": code, "details": details or {}}
+def _err(msg: str, code: str, details: dict | None = None) -> dict:
+    return {"error": msg, "code": code, "details": details or {}}
 
 
 def _build_job_response(job: Job, module_type: Optional[str] = None) -> JobResponse:
@@ -53,7 +54,7 @@ async def list_jobs(
 
     if module_id:
         if module_id not in user_mods:
-            raise HTTPException(status_code=404, detail=_ERR("Module not found", "MODULE_NOT_FOUND"))
+            raise HTTPException(status_code=404, detail=_err("Module not found", "MODULE_NOT_FOUND"))
         query = query.where(Job.module_id == module_id)
 
     if job_status:
@@ -99,7 +100,7 @@ async def get_job(
     row = result.first()
 
     if row is None:
-        raise HTTPException(status_code=404, detail=_ERR("Job not found", "JOB_NOT_FOUND"))
+        raise HTTPException(status_code=404, detail=_err("Job not found", "JOB_NOT_FOUND"))
 
     job, module_type = row
     return _build_job_response(job, module_type)
@@ -127,7 +128,7 @@ async def get_job_logs(
     row = result.first()
 
     if row is None:
-        raise HTTPException(status_code=404, detail=_ERR("Job not found", "JOB_NOT_FOUND"))
+        raise HTTPException(status_code=404, detail=_err("Job not found", "JOB_NOT_FOUND"))
 
     job, module_type = row
 
@@ -193,14 +194,14 @@ async def retry_job(
     row = result.first()
 
     if row is None:
-        raise HTTPException(status_code=404, detail=_ERR("Job not found", "JOB_NOT_FOUND"))
+        raise HTTPException(status_code=404, detail=_err("Job not found", "JOB_NOT_FOUND"))
 
     job, module_row = row
 
     if job.status not in ("failed", "pending"):
         raise HTTPException(
             status_code=400,
-            detail=_ERR(f"Cannot retry job with status '{job.status}'", "INVALID_JOB_STATUS"),
+            detail=_err(f"Cannot retry job with status '{job.status}'", "INVALID_JOB_STATUS"),
         )
 
     background_tasks.add_task(execute_module_job, str(module_row.id))

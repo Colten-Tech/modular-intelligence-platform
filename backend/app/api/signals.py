@@ -14,7 +14,8 @@ from app.models.schemas import SignalListResponse, SignalResponse
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-_ERR = lambda msg, code, details=None: {"error": msg, "code": code, "details": details or {}}
+def _err(msg: str, code: str, details: dict | None = None) -> dict:
+    return {"error": msg, "code": code, "details": details or {}}
 
 
 @router.get("/signals", response_model=SignalListResponse)
@@ -34,12 +35,12 @@ async def get_signals_feed(
 
     query = select(Signal).where(
         Signal.user_id == user_id,
-        Signal.archived == False,
+        Signal.archived.is_(False),
         Signal.score >= min_score,
     )
 
     if unread_only:
-        query = query.where(Signal.read == False)
+        query = query.where(Signal.read.is_(False))
 
     if date_from:
         query = query.where(Signal.created_at >= date_from)
@@ -102,7 +103,7 @@ async def get_signal_detail(
     signal = result.scalar_one_or_none()
 
     if signal is None:
-        raise HTTPException(status_code=404, detail=_ERR("Signal not found", "SIGNAL_NOT_FOUND"))
+        raise HTTPException(status_code=404, detail=_err("Signal not found", "SIGNAL_NOT_FOUND"))
 
     # Auto-mark as read on detail view
     if not signal.read:
@@ -126,7 +127,7 @@ async def mark_signal_read(
     signal = result.scalar_one_or_none()
 
     if signal is None:
-        raise HTTPException(status_code=404, detail=_ERR("Signal not found", "SIGNAL_NOT_FOUND"))
+        raise HTTPException(status_code=404, detail=_err("Signal not found", "SIGNAL_NOT_FOUND"))
 
     signal.read = True
     await db.commit()
@@ -146,7 +147,7 @@ async def archive_signal(
     signal = result.scalar_one_or_none()
 
     if signal is None:
-        raise HTTPException(status_code=404, detail=_ERR("Signal not found", "SIGNAL_NOT_FOUND"))
+        raise HTTPException(status_code=404, detail=_err("Signal not found", "SIGNAL_NOT_FOUND"))
 
     signal.archived = True
     signal.read = True

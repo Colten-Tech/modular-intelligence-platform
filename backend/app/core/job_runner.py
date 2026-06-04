@@ -189,7 +189,7 @@ async def _check_and_queue_alerts(
             SignalModel.module_id == module_id,
             SignalModel.user_id == user_id,
             SignalModel.score >= 0.75,
-            SignalModel.read == False,
+            SignalModel.read.is_(False),
             ~alerted_sub,
         )
         .order_by(SignalModel.created_at.desc())

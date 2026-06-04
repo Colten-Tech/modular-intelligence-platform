@@ -2,8 +2,10 @@
 Admin API — endpoints accessible only to users with is_admin = TRUE.
 All routes require a valid JWT (get_current_user) AND is_admin flag in DB.
 """
+import os
 import uuid
 import logging
+from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -76,6 +78,25 @@ class AdminToggle(BaseModel):
     is_admin: bool
 
 
+class ModuleSourceInfo(BaseModel):
+    module_id: str
+    filename: str
+    display_name: str
+    cluster: str
+    lines: int
+
+
+class ModuleSourceResponse(BaseModel):
+    module_id: str
+    filename: str
+    display_name: str
+    source: str
+
+
+class ModuleSourceUpdate(BaseModel):
+    source: str
+
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @router.get("/overview", response_model=AdminOverview)
@@ -91,7 +112,7 @@ async def admin_overview(
     total_signals = (await db.execute(select(func.count()).select_from(SignalModel))).scalar_one()
     total_jobs = (await db.execute(select(func.count()).select_from(Job))).scalar_one()
     active_modules = (
-        await db.execute(select(func.count()).select_from(Module).where(Module.enabled == True))
+        await db.execute(select(func.count()).select_from(Module).where(Module.enabled.is_(True)))
     ).scalar_one()
     jobs_24h = (
         await db.execute(
@@ -245,4 +266,89 @@ async def admin_toggle_admin(
         created_at=db_user.created_at.isoformat() if db_user.created_at else "",
         module_count=module_count,
         signal_count=signal_count,
+    )
+
+
+# ── Module source code endpoints ──────────────────────────────────────────────
+
+_MODULES_DIR = Path(__file__).parent.parent / "modules"
+
+
+def _module_file(module_id: str) -> Path:
+    """Resolve a module_id to its .py file path, rejecting path traversal."""
+    safe_id = os.path.basename(module_id)  # strip any directory components
+    candidate = _MODULES_DIR / f"{safe_id}.py"
+    if not candidate.exists():
+        raise HTTPException(status_code=404, detail=f"Module source not found: {module_id}")
+    return candidate
+
+
+@router.get("/module-sources", response_model=list[ModuleSourceInfo])
+async def admin_list_module_sources(
+    _admin: dict = Depends(require_admin),
+) -> Any:
+    """List all module Python files with basic metadata."""
+    from app.core.module_registry import module_registry
+
+    results: list[ModuleSourceInfo] = []
+    for py_file in sorted(_MODULES_DIR.glob("*.py")):
+        if py_file.name.startswith("_"):
+            continue
+        module_id = py_file.stem
+        instance = module_registry.get_module(module_id)
+        results.append(
+            ModuleSourceInfo(
+                module_id=module_id,
+                filename=py_file.name,
+                display_name=instance.display_name if instance else module_id.replace("_", " ").title(),
+                cluster=instance.cluster if instance else "unknown",
+                lines=len(py_file.read_text(encoding="utf-8").splitlines()),
+            )
+        )
+    return results
+
+
+@router.get("/module-sources/{module_id}", response_model=ModuleSourceResponse)
+async def admin_get_module_source(
+    module_id: str,
+    _admin: dict = Depends(require_admin),
+) -> Any:
+    """Return the Python source code for a module."""
+    from app.core.module_registry import module_registry
+
+    path = _module_file(module_id)
+    source = path.read_text(encoding="utf-8")
+    instance = module_registry.get(module_id)
+    return ModuleSourceResponse(
+        module_id=module_id,
+        filename=path.name,
+        display_name=instance.display_name if instance else module_id.replace("_", " ").title(),
+        source=source,
+    )
+
+
+@router.put("/module-sources/{module_id}", response_model=ModuleSourceResponse)
+async def admin_update_module_source(
+    module_id: str,
+    body: ModuleSourceUpdate,
+    _admin: dict = Depends(require_admin),
+) -> Any:
+    """Overwrite the Python source of a module file.
+
+    WARNING: writes directly to the running server filesystem.
+    Changes take effect after the next server restart / reload.
+    """
+    from app.core.module_registry import module_registry
+
+    path = _module_file(module_id)
+    if not body.source.strip():
+        raise HTTPException(status_code=400, detail="Source code cannot be empty.")
+    path.write_text(body.source, encoding="utf-8")
+    logger.warning("Admin overwrote module source: %s (%d bytes)", path.name, len(body.source))
+    instance = module_registry.get(module_id)
+    return ModuleSourceResponse(
+        module_id=module_id,
+        filename=path.name,
+        display_name=instance.display_name if instance else module_id.replace("_", " ").title(),
+        source=body.source,
     )

@@ -19,7 +19,8 @@ from app.models.schemas import (
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-_ERR = lambda msg, code, details=None: {"error": msg, "code": code, "details": details or {}}
+def _err(msg: str, code: str, details: dict | None = None) -> dict:
+    return {"error": msg, "code": code, "details": details or {}}
 
 PLANS: List[PlanDetail] = [
     PlanDetail(
@@ -115,16 +116,16 @@ async def create_checkout_session(
 
         stripe.api_key = settings.stripe_secret_key
     except ImportError:
-        raise HTTPException(status_code=503, detail=_ERR("Stripe not available", "STRIPE_UNAVAILABLE"))
+        raise HTTPException(status_code=503, detail=_err("Stripe not available", "STRIPE_UNAVAILABLE"))
 
     if body.plan not in ("pro", "team"):
-        raise HTTPException(status_code=400, detail=_ERR("Invalid plan", "INVALID_PLAN"))
+        raise HTTPException(status_code=400, detail=_err("Invalid plan", "INVALID_PLAN"))
 
     price_id = PLAN_PRICES[body.plan].get(body.interval)
     if not price_id:
         raise HTTPException(
             status_code=400,
-            detail=_ERR(f"No price configured for {body.plan}/{body.interval}", "NO_PRICE_CONFIGURED"),
+            detail=_err(f"No price configured for {body.plan}/{body.interval}", "NO_PRICE_CONFIGURED"),
         )
 
     import asyncio
@@ -161,7 +162,7 @@ async def get_billing_portal(
 
         stripe.api_key = settings.stripe_secret_key
     except ImportError:
-        raise HTTPException(status_code=503, detail=_ERR("Stripe not available", "STRIPE_UNAVAILABLE"))
+        raise HTTPException(status_code=503, detail=_err("Stripe not available", "STRIPE_UNAVAILABLE"))
 
     import asyncio
 
@@ -192,7 +193,7 @@ async def stripe_webhook(
 
         stripe.api_key = settings.stripe_secret_key
     except ImportError:
-        raise HTTPException(status_code=503, detail=_ERR("Stripe not available", "STRIPE_UNAVAILABLE"))
+        raise HTTPException(status_code=503, detail=_err("Stripe not available", "STRIPE_UNAVAILABLE"))
 
     import asyncio
 
@@ -208,12 +209,12 @@ async def stripe_webhook(
     except stripe.error.SignatureVerificationError:
         raise HTTPException(
             status_code=400,
-            detail=_ERR("Invalid webhook signature", "INVALID_WEBHOOK_SIGNATURE"),
+            detail=_err("Invalid webhook signature", "INVALID_WEBHOOK_SIGNATURE"),
         )
     except Exception as exc:
         raise HTTPException(
             status_code=400,
-            detail=_ERR(f"Webhook error: {exc}", "WEBHOOK_ERROR"),
+            detail=_err(f"Webhook error: {exc}", "WEBHOOK_ERROR"),
         )
 
     event_type = event["type"]

@@ -81,7 +81,7 @@ def sync_all_schedules():
 
     async def _sync():
         async with AsyncSessionLocal() as db:
-            stmt = select(Module).where(Module.enabled == True)
+            stmt = select(Module).where(Module.enabled.is_(True))
             result = await db.execute(stmt)
             modules = result.scalars().all()
             logger.info(f"Syncing {len(modules)} enabled modules into scheduler")

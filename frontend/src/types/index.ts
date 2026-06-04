@@ -32,6 +32,21 @@ export interface AdminOverview {
   users_by_plan: Record<string, number>
 }
 
+export interface ModuleSourceInfo {
+  module_id: string
+  filename: string
+  display_name: string
+  cluster: string
+  lines: number
+}
+
+export interface ModuleSourceResponse {
+  module_id: string
+  filename: string
+  display_name: string
+  source: string
+}
+
 export interface ModuleDefinition {
   module_id: string
   display_name: string

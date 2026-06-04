@@ -1,6 +1,6 @@
 import uuid
 import logging
-from typing import List, Optional
+from typing import List
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy import func, select
@@ -25,7 +25,8 @@ from app.models.schemas import (
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-_ERR = lambda msg, code, details=None: {"error": msg, "code": code, "details": details or {}}
+def _err(msg: str, code: str, details: dict | None = None) -> dict:
+    return {"error": msg, "code": code, "details": details or {}}
 
 
 @router.get("/modules", response_model=List[ModuleInfo])
@@ -73,7 +74,7 @@ async def enable_module(
     """Enable a module for the current user."""
     mod = module_registry.get_module(module_id)
     if mod is None:
-        raise HTTPException(status_code=404, detail=_ERR(f"Module '{module_id}' not found", "MODULE_NOT_FOUND"))
+        raise HTTPException(status_code=404, detail=_err(f"Module '{module_id}' not found", "MODULE_NOT_FOUND"))
 
     user_id = uuid.UUID(current_user["id"])
 
@@ -92,7 +93,7 @@ async def enable_module(
         if user_level < required_level:
             raise HTTPException(
                 status_code=403,
-                detail=_ERR(f"Module requires '{mod.required_plan}' plan", "PLAN_REQUIRED"),
+                detail=_err(f"Module requires '{mod.required_plan}' plan", "PLAN_REQUIRED"),
             )
 
     # Check if already enabled
@@ -107,7 +108,7 @@ async def enable_module(
         if existing.enabled:
             raise HTTPException(
                 status_code=409,
-                detail=_ERR("Module already enabled", "MODULE_ALREADY_ENABLED"),
+                detail=_err("Module already enabled", "MODULE_ALREADY_ENABLED"),
             )
         # Re-enable
         existing.enabled = True
@@ -123,7 +124,7 @@ async def enable_module(
     if body.config and not mod.validate_config(body.config):
         raise HTTPException(
             status_code=422,
-            detail=_ERR("Invalid module configuration", "INVALID_CONFIG"),
+            detail=_err("Invalid module configuration", "INVALID_CONFIG"),
         )
 
     module_row = Module(
@@ -159,11 +160,11 @@ async def update_module_config(
     module_row = result.scalar_one_or_none()
 
     if module_row is None:
-        raise HTTPException(status_code=404, detail=_ERR("Module not found", "MODULE_NOT_FOUND"))
+        raise HTTPException(status_code=404, detail=_err("Module not found", "MODULE_NOT_FOUND"))
 
     mod = module_registry.get_module(module_row.module_type)
     if mod and not mod.validate_config(body.config):
-        raise HTTPException(status_code=422, detail=_ERR("Invalid configuration", "INVALID_CONFIG"))
+        raise HTTPException(status_code=422, detail=_err("Invalid configuration", "INVALID_CONFIG"))
 
     module_row.config = body.config
     await db.commit()
@@ -191,7 +192,7 @@ async def trigger_module_run(
     module_row = result.scalar_one_or_none()
 
     if module_row is None:
-        raise HTTPException(status_code=404, detail=_ERR("Module not found", "MODULE_NOT_FOUND"))
+        raise HTTPException(status_code=404, detail=_err("Module not found", "MODULE_NOT_FOUND"))
 
     # Create the job record NOW (before the background task runs) so the UI
     # can show it as "running" as soon as it receives this 202 response.
@@ -238,16 +239,16 @@ async def get_module_signals(
     module_row = mod_result.scalar_one_or_none()
 
     if module_row is None:
-        raise HTTPException(status_code=404, detail=_ERR("Module not found", "MODULE_NOT_FOUND"))
+        raise HTTPException(status_code=404, detail=_err("Module not found", "MODULE_NOT_FOUND"))
 
     query = select(Signal).where(
         Signal.module_id == module_row.id,
         Signal.user_id == user_id,
-        Signal.archived == False,
+        Signal.archived.is_(False),
         Signal.score >= min_score,
     )
     if unread_only:
-        query = query.where(Signal.read == False)
+        query = query.where(Signal.read.is_(False))
 
     # Count
     count_stmt = select(func.count()).select_from(query.subquery())
@@ -281,7 +282,7 @@ async def get_module_status(
     module_row = result.scalar_one_or_none()
 
     if module_row is None:
-        raise HTTPException(status_code=404, detail=_ERR("Module not found", "MODULE_NOT_FOUND"))
+        raise HTTPException(status_code=404, detail=_err("Module not found", "MODULE_NOT_FOUND"))
 
     # Job stats
     jobs_stmt = select(Job).where(Job.module_id == module_row.id).order_by(Job.started_at.desc())
@@ -331,7 +332,7 @@ async def pause_module(
     module_row = result.scalar_one_or_none()
 
     if module_row is None:
-        raise HTTPException(status_code=404, detail=_ERR("Module not found", "MODULE_NOT_FOUND"))
+        raise HTTPException(status_code=404, detail=_err("Module not found", "MODULE_NOT_FOUND"))
 
     module_row.enabled = False
     scheduler_instance.unschedule_module(str(module_row.id))
@@ -353,7 +354,7 @@ async def resume_module(
     module_row = result.scalar_one_or_none()
 
     if module_row is None:
-        raise HTTPException(status_code=404, detail=_ERR("Module not found", "MODULE_NOT_FOUND"))
+        raise HTTPException(status_code=404, detail=_err("Module not found", "MODULE_NOT_FOUND"))
 
     mod = module_registry.get_module(module_row.module_type)
     module_row.enabled = True
@@ -379,7 +380,7 @@ async def disable_module(
     module_row = result.scalar_one_or_none()
 
     if module_row is None:
-        raise HTTPException(status_code=404, detail=_ERR("Module not found", "MODULE_NOT_FOUND"))
+        raise HTTPException(status_code=404, detail=_err("Module not found", "MODULE_NOT_FOUND"))
 
     module_row.enabled = False
     scheduler_instance.unschedule_module(str(module_row.id))

@@ -13,7 +13,8 @@ from app.models.schemas import UserSettings, UserStats
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-_ERR = lambda msg, code, details=None: {"error": msg, "code": code, "details": details or {}}
+def _err(msg: str, code: str, details: dict | None = None) -> dict:
+    return {"error": msg, "code": code, "details": details or {}}
 
 # In a real app, user settings would be stored in a separate table.
 # Here we use a simple in-memory dict as a placeholder (per-user, server-scoped).
@@ -87,7 +88,7 @@ async def get_user_stats(
 
     # Active enabled modules
     mods_result = await db.execute(
-        select(Module).where(Module.user_id == user_id, Module.enabled == True)
+        select(Module).where(Module.user_id == user_id, Module.enabled.is_(True))
     )
     enabled_modules = mods_result.scalars().all()
     module_ids = [m.id for m in enabled_modules]
@@ -111,7 +112,7 @@ async def get_user_stats(
 
     # Unread signals
     unread_sigs = await db.execute(
-        select(func.count()).select_from(Signal).where(Signal.user_id == user_id, Signal.read == False, Signal.archived == False)
+        select(func.count()).select_from(Signal).where(Signal.user_id == user_id, Signal.read.is_(False), Signal.archived.is_(False))
     )
     unread_signals = unread_sigs.scalar_one()
 

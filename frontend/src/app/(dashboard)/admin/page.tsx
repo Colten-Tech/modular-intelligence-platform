@@ -1,12 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   getAdminOverview,
   getAdminUsers,
   adminUpdatePlan,
   adminToggleAdmin,
+  adminListModuleSources,
+  adminGetModuleSource,
+  adminSaveModuleSource,
 } from '@/lib/api'
 import { useAppStore } from '@/store'
 import { cn } from '@/lib/utils'
@@ -21,6 +24,11 @@ import {
   Loader2,
   AlertCircle,
   Crown,
+  Code2,
+  ChevronRight,
+  Save,
+  X,
+  FileCode,
 } from 'lucide-react'
 import type { AdminUserRow, Plan } from '@/types'
 
@@ -64,27 +72,80 @@ export default function AdminPage() {
   const queryClient = useQueryClient()
   const [planLoading, setPlanLoading] = useState<string | null>(null)
   const [adminLoading, setAdminLoading] = useState<string | null>(null)
+  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null)
+  const [editedSource, setEditedSource] = useState<string | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+
+  // All hooks must be declared before any early return (Rules of Hooks)
+  const isAdmin = !user || user.is_admin  // allow through if user not yet loaded
+
+  const { data: overview, isLoading: overviewLoading } = useQuery({
+    queryKey: ['admin', 'overview'],
+    queryFn: getAdminOverview,
+    refetchInterval: 30_000,
+    enabled: isAdmin,
+  })
+
+  const { data: users, isLoading: usersLoading } = useQuery({
+    queryKey: ['admin', 'users'],
+    queryFn: getAdminUsers,
+    enabled: isAdmin,
+  })
+
+  const { data: moduleSources, isLoading: moduleSourcesLoading } = useQuery({
+    queryKey: ['admin', 'module-sources'],
+    queryFn: adminListModuleSources,
+    enabled: isAdmin,
+  })
+
+  const { data: activeSource, isLoading: sourceLoading } = useQuery({
+    queryKey: ['admin', 'module-source', selectedModuleId],
+    queryFn: () => adminGetModuleSource(selectedModuleId!),
+    enabled: isAdmin && !!selectedModuleId,
+  })
+
+  const { mutate: saveSource, isPending: saving } = useMutation({
+    mutationFn: ({ id, source }: { id: string; source: string }) =>
+      adminSaveModuleSource(id, source),
+    onSuccess: (data) => {
+      queryClient.setQueryData(['admin', 'module-source', data.module_id], data)
+      setIsEditing(false)
+      setEditedSource(null)
+      toast.success(`${data.display_name} saved — restart server to apply changes`)
+    },
+    onError: (e: Error) => toast.error(`Save failed: ${e.message}`),
+  })
+
+  const handleSelectModule = useCallback((id: string) => {
+    setSelectedModuleId(id)
+    setIsEditing(false)
+    setEditedSource(null)
+  }, [])
+
+  const handleStartEdit = useCallback(() => {
+    setEditedSource(activeSource?.source ?? '')
+    setIsEditing(true)
+  }, [activeSource])
+
+  const handleCancelEdit = useCallback(() => {
+    setIsEditing(false)
+    setEditedSource(null)
+  }, [])
+
+  const handleSave = useCallback(() => {
+    if (!selectedModuleId || editedSource === null) return
+    saveSource({ id: selectedModuleId, source: editedSource })
+  }, [selectedModuleId, editedSource, saveSource])
 
   // Guard: non-admins see a 403 page
   if (user && !user.is_admin) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3">
         <AlertCircle className="w-8 h-8 text-error" />
-        <p className="text-text-muted text-sm">You don't have admin access.</p>
+        <p className="text-text-muted text-sm">You don&apos;t have admin access.</p>
       </div>
     )
   }
-
-  const { data: overview, isLoading: overviewLoading } = useQuery({
-    queryKey: ['admin', 'overview'],
-    queryFn: getAdminOverview,
-    refetchInterval: 30_000,
-  })
-
-  const { data: users, isLoading: usersLoading } = useQuery({
-    queryKey: ['admin', 'users'],
-    queryFn: getAdminUsers,
-  })
 
   async function handlePlanChange(userId: string, plan: string) {
     setPlanLoading(userId)
@@ -255,6 +316,123 @@ export default function AdminPage() {
               </tbody>
             </table>
           )}
+        </div>
+      </div>
+
+      {/* Module Source Code */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Code2 className="w-3.5 h-3.5 text-text-muted" />
+          <h2 className="font-display text-sm tracking-widest text-text-secondary uppercase">
+            Module Source Code
+          </h2>
+        </div>
+
+        <div className="border border-border rounded overflow-hidden flex" style={{ minHeight: 480 }}>
+          {/* Module list sidebar */}
+          <div className="w-56 shrink-0 border-r border-border bg-bg-elevated overflow-y-auto">
+            {moduleSourcesLoading ? (
+              <div className="flex items-center justify-center h-24">
+                <Loader2 className="w-4 h-4 animate-spin text-text-muted" />
+              </div>
+            ) : (
+              (moduleSources ?? []).map((m) => (
+                <button
+                  key={m.module_id}
+                  onClick={() => handleSelectModule(m.module_id)}
+                  className={cn(
+                    'w-full flex items-center justify-between gap-2 px-3 py-2.5 text-left transition-colors border-b border-border last:border-0',
+                    selectedModuleId === m.module_id
+                      ? 'bg-bg-hover text-text-primary'
+                      : 'text-text-secondary hover:bg-bg-hover hover:text-text-primary'
+                  )}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <FileCode className="w-3 h-3 shrink-0 text-text-muted" />
+                    <span className="text-[11px] truncate">{m.display_name}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <span className="text-[10px] text-text-muted tabular-nums">{m.lines}L</span>
+                    <ChevronRight className={cn('w-3 h-3 text-text-muted transition-transform', selectedModuleId === m.module_id && 'text-text-primary')} />
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+
+          {/* Code viewer / editor */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {!selectedModuleId ? (
+              <div className="flex flex-col items-center justify-center flex-1 gap-2 text-text-muted">
+                <Code2 className="w-8 h-8 opacity-30" />
+                <p className="text-xs">Select a module to view its source</p>
+              </div>
+            ) : sourceLoading ? (
+              <div className="flex items-center justify-center flex-1 gap-2">
+                <Loader2 className="w-4 h-4 animate-spin text-text-muted" />
+                <span className="text-xs text-text-muted">Loading source…</span>
+              </div>
+            ) : activeSource ? (
+              <>
+                {/* Toolbar */}
+                <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-bg-surface shrink-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-mono text-text-secondary">{activeSource.filename}</span>
+                    <span className="text-[10px] text-text-muted">
+                      {(isEditing ? editedSource ?? '' : activeSource.source).split('\n').length} lines
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {isEditing ? (
+                      <>
+                        <button
+                          onClick={handleCancelEdit}
+                          className="inline-flex items-center gap-1 text-[11px] text-text-muted hover:text-text-primary border border-border rounded px-2 py-0.5 transition-colors"
+                        >
+                          <X className="w-3 h-3" />
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleSave}
+                          disabled={saving || editedSource === activeSource.source}
+                          className="inline-flex items-center gap-1 text-[11px] text-accent-b2b border border-accent-b2b/30 rounded px-2 py-0.5 hover:bg-accent-b2b/10 transition-colors disabled:opacity-50"
+                        >
+                          {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Save className="w-3 h-3" />}
+                          Save
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        onClick={handleStartEdit}
+                        className="inline-flex items-center gap-1 text-[11px] text-text-secondary hover:text-text-primary border border-border rounded px-2 py-0.5 hover:border-border-active transition-colors"
+                      >
+                        <Code2 className="w-3 h-3" />
+                        Edit
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Source code area */}
+                {isEditing ? (
+                  <textarea
+                    value={editedSource ?? activeSource.source}
+                    onChange={(e) => setEditedSource(e.target.value)}
+                    spellCheck={false}
+                    className="flex-1 w-full bg-bg-base text-text-primary font-mono text-[11px] leading-relaxed p-4 resize-none border-0 outline-none focus:outline-none"
+                    style={{ fontFamily: 'IBM Plex Mono, Menlo, monospace', tabSize: 4 }}
+                  />
+                ) : (
+                  <div className="flex-1 overflow-auto">
+                    <pre className="p-4 text-[11px] leading-relaxed font-mono text-text-secondary whitespace-pre"
+                      style={{ fontFamily: 'IBM Plex Mono, Menlo, monospace' }}>
+                      {activeSource.source}
+                    </pre>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
         </div>
       </div>
     </div>

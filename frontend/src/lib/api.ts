@@ -239,3 +239,18 @@ export async function adminToggleAdmin(userId: string, isAdmin: boolean): Promis
     body: JSON.stringify({ is_admin: isAdmin }),
   })
 }
+
+export async function adminListModuleSources(): Promise<import('@/types').ModuleSourceInfo[]> {
+  return request('/api/admin/module-sources')
+}
+
+export async function adminGetModuleSource(moduleId: string): Promise<import('@/types').ModuleSourceResponse> {
+  return request(`/api/admin/module-sources/${moduleId}`)
+}
+
+export async function adminSaveModuleSource(moduleId: string, source: string): Promise<import('@/types').ModuleSourceResponse> {
+  return request(`/api/admin/module-sources/${moduleId}`, {
+    method: 'PUT',
+    body: JSON.stringify({ source }),
+  })
+}
