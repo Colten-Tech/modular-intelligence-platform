@@ -1,6 +1,5 @@
 import logging
-from datetime import date, datetime
-from typing import Any, Dict, List, Optional
+from typing import List
 
 import httpx
 
@@ -124,7 +123,7 @@ class GrantFundingTracker(BaseModule):
         sector = config.get("company_sector", "")
         stage = config.get("company_stage", "seed")
         tech_focus = config.get("technology_focus", [])
-        regions = config.get("regions", ["Germany", "EU"])
+        _regions = config.get("regions", ["Germany", "EU"])
         min_relevance = float(config.get("min_relevance", 0.5))
 
         if not sector:

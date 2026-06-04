@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 from app.core.base_module import BaseModule, Signal
-from app.utils.llm import llm_extractor
 
 logger = logging.getLogger(__name__)
 

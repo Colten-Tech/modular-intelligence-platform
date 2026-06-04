@@ -1,7 +1,7 @@
 import logging
 import statistics
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from typing import List
 
 from sqlalchemy import select
 

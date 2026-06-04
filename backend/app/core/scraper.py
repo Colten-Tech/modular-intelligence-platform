@@ -1,7 +1,6 @@
 import asyncio
 import logging
 import random
-import re
 import urllib.robotparser
 from typing import Optional
 from urllib.parse import urlparse

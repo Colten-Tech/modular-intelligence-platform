@@ -1,6 +1,5 @@
 import json
 import logging
-from typing import Any, Optional
 
 from groq import AsyncGroq
 

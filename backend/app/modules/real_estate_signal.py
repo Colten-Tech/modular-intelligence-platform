@@ -1,8 +1,5 @@
 import logging
-import re
-import uuid
-from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from app.core.base_module import BaseModule, Signal
 from app.core.scraper import scraper_engine
@@ -237,7 +234,7 @@ class RealEstateSignal(BaseModule):
         total = market.get("total_listings", len(listings))
         trend = market.get("price_trend", "stable")
 
-        affordable = [l for l in listings if l.get("price_sqm", float("inf")) <= max_price_sqm]
+        affordable = [listing for listing in listings if listing.get("price_sqm", float("inf")) <= max_price_sqm]
 
         if not affordable and avg_sqm > max_price_sqm:
             return []

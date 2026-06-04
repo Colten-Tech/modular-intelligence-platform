@@ -3,7 +3,6 @@ import uuid
 from datetime import datetime, timezone
 from typing import List, Optional
 
-import httpx
 from sqlalchemy import select
 
 from app.core.base_module import BaseModule, Signal

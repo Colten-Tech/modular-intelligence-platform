@@ -1,8 +1,8 @@
 import logging
 import statistics
 import uuid
-from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Optional
+from datetime import datetime, timezone
+from typing import Any, Dict, List
 
 from sqlalchemy import select
 

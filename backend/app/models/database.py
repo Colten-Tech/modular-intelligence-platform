@@ -1,6 +1,6 @@
+import os
 import uuid
-from datetime import date, datetime
-from typing import Any, AsyncGenerator, Optional
+from typing import AsyncGenerator
 
 from sqlalchemy import (
     Boolean,
@@ -10,7 +10,6 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
-    String,
     Text,
     text,
 )
@@ -28,7 +27,6 @@ _db_url = settings.supabase_url
 # derive it from the project URL using the service key if needed.
 # For direct asyncpg, callers must set DATABASE_URL in their .env.
 # We accept both forms gracefully.
-import os
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 if not DATABASE_URL:
@@ -38,7 +36,7 @@ if not DATABASE_URL:
     project_ref = settings.supabase_url.replace("https://", "").split(".")[0]
     # Derive region from SUPABASE_URL — eu-west-1 projects use aws-0-eu-west-1.pooler.supabase.com
     # Default to eu-west-1; override DATABASE_URL env var if you're in a different region.
-    _pooler_host = f"aws-0-eu-west-1.pooler.supabase.com"
+    _pooler_host = "aws-0-eu-west-1.pooler.supabase.com"
     DATABASE_URL = (
         f"postgresql+asyncpg://postgres.{project_ref}:{settings.supabase_service_key}"
         f"@{_pooler_host}:5432/postgres"

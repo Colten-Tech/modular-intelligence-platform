@@ -15,7 +15,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.middleware import get_current_user
 from app.models.database import (
-    AsyncSessionLocal,
     Job,
     Module,
     Signal as SignalModel,
