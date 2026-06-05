@@ -262,7 +262,7 @@ function JobRow({ job, expanded, onToggle, onRetry, retrying }: JobRowProps) {
                 <p className="text-xs text-error/80">{job.error}</p>
               </div>
             )}
-            <JobLogViewer jobId={job.id} height={240} />
+            <JobLogViewer jobId={job.id} height={240} isRunning={job.status === 'running'} />
           </td>
         </tr>
       )}

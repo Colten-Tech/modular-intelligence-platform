@@ -317,7 +317,7 @@ async def admin_get_module_source(
 
     path = _module_file(module_id)
     source = path.read_text(encoding="utf-8")
-    instance = module_registry.get(module_id)
+    instance = module_registry.get_module(module_id)
     return ModuleSourceResponse(
         module_id=module_id,
         filename=path.name,
@@ -344,7 +344,7 @@ async def admin_update_module_source(
         raise HTTPException(status_code=400, detail="Source code cannot be empty.")
     path.write_text(body.source, encoding="utf-8")
     logger.warning("Admin overwrote module source: %s (%d bytes)", path.name, len(body.source))
-    instance = module_registry.get(module_id)
+    instance = module_registry.get_module(module_id)
     return ModuleSourceResponse(
         module_id=module_id,
         filename=path.name,
