@@ -1,16 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSignals, useUserStats } from '@/hooks/useSignals'
 import { useModules, useRunModule } from '@/hooks/useModules'
+import { useJobs } from '@/hooks/useJobs'
 import { SignalCard } from '@/components/signals/SignalCard'
+import { JobLogViewer } from '@/components/jobs/JobLogViewer'
 import { SkeletonCard } from '@/components/ui/SkeletonCard'
 import { StatusDot } from '@/components/ui/StatusDot'
 import { CLUSTER_COLORS } from '@/lib/constants'
 import { formatRelativeTime, cn } from '@/lib/utils'
-import type { Cluster } from '@/types'
-import { Zap, TrendingUp, Layers, Briefcase, Play, Pause } from 'lucide-react'
+import type { Cluster, JobStatus, ModuleStatus } from '@/types'
+import { Zap, TrendingUp, Layers, Briefcase, Play, Pause, ChevronDown, ChevronUp, Activity } from 'lucide-react'
 import { toast } from 'sonner'
+
+const JOB_STATUS_MAP: Record<JobStatus, ModuleStatus> = {
+  running: 'running',
+  success: 'active',
+  failed: 'error',
+  queued: 'paused',
+}
 
 const CLUSTER_FILTERS: { label: string; value: Cluster | 'all' }[] = [
   { label: 'All', value: 'all' },
@@ -23,6 +32,7 @@ const CLUSTER_FILTERS: { label: string; value: Cluster | 'all' }[] = [
 export default function OverviewPage() {
   const [clusterFilter, setClusterFilter] = useState<Cluster | 'all'>('all')
   const [search, setSearch] = useState('')
+  const [activityOpen, setActivityOpen] = useState(false)
 
   // Backend always excludes archived signals; cluster is a client-side filter
   // because the /signals endpoint doesn't accept a cluster param.
@@ -31,6 +41,7 @@ export default function OverviewPage() {
   const { data: stats, isLoading: statsLoading } = useUserStats()
   const { data: modulesData } = useModules()
   const { mutate: runModule } = useRunModule()
+  const { data: jobsData } = useJobs({ limit: 20 })
 
   const signals = signalsData?.items ?? []
   const unreadCount = signals.filter((s) => !s.read).length
@@ -54,6 +65,15 @@ export default function OverviewPage() {
   })
 
   const activeInstances = modulesData?.instances.filter((i) => i.enabled) ?? []
+
+  // Live activity
+  const recentJobs = jobsData?.items ?? []
+  const runningJobs = recentJobs.filter((j) => j.status === 'running')
+
+  // Auto-open panel when jobs start running
+  useEffect(() => {
+    if (runningJobs.length > 0) setActivityOpen(true)
+  }, [runningJobs.length])
 
   function handleRunAll() {
     if (activeInstances.length === 0) return
@@ -289,6 +309,11 @@ export default function OverviewPage() {
               >
                 <Play className="w-3 h-3" />
                 Run All
+                {runningJobs.length > 0 && (
+                  <span className="ml-1 px-1 py-0.5 bg-accent-b2b/20 text-[9px] rounded-full leading-none">
+                    {runningJobs.length}
+                  </span>
+                )}
               </button>
               <button
                 onClick={() => toast.info('Pause all — coming soon')}
@@ -299,6 +324,66 @@ export default function OverviewPage() {
                 Pause All
               </button>
             </div>
+          </div>
+
+          {/* Live Activity */}
+          <div>
+            <button
+              onClick={() => setActivityOpen((o) => !o)}
+              className="w-full flex items-center justify-between mb-2 group"
+            >
+              <div className="flex items-center gap-2">
+                <Activity className="w-3 h-3 text-text-muted" />
+                <p className="text-[10px] text-text-muted uppercase tracking-wide">
+                  Live Activity
+                </p>
+                {runningJobs.length > 0 && (
+                  <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-accent-consumer/10 border border-accent-consumer/30 text-accent-consumer text-[9px] rounded-full animate-pulse">
+                    {runningJobs.length} running
+                  </span>
+                )}
+              </div>
+              {activityOpen ? (
+                <ChevronUp className="w-3 h-3 text-text-muted group-hover:text-text-primary transition-colors" />
+              ) : (
+                <ChevronDown className="w-3 h-3 text-text-muted group-hover:text-text-primary transition-colors" />
+              )}
+            </button>
+
+            {activityOpen && (
+              <div className="space-y-3">
+                {recentJobs.length === 0 ? (
+                  <p className="text-[11px] text-text-muted py-4 text-center">
+                    No recent jobs — run a module to see activity here.
+                  </p>
+                ) : (
+                  recentJobs.slice(0, 6).map((job) => {
+                    const def = modulesData?.definitions.find(
+                      (d) => d.module_id === job.module_type
+                    )
+                    const isRunning = job.status === 'running'
+                    return (
+                      <div key={job.id} className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[11px] text-text-secondary truncate flex-1 mr-2">
+                            {def?.display_name ?? job.module_type ?? 'Module'}
+                          </span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            {job.signals_found > 0 && (
+                              <span className="text-[9px] text-text-muted">
+                                {job.signals_found} signals
+                              </span>
+                            )}
+                            <StatusDot status={JOB_STATUS_MAP[job.status]} />
+                          </div>
+                        </div>
+                        <JobLogViewer jobId={job.id} height={160} isRunning={isRunning} />
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            )}
           </div>
         </div>
       </div>
