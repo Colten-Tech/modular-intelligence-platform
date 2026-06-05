@@ -4,6 +4,12 @@
   "outputDirectory": ".next",
   "installCommand": "npm install --legacy-peer-deps",
   "devCommand": "npm run dev",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://mip-api-aehz.onrender.com/api/:path*"
+    }
+  ],
   "headers": [
     {
       "source": "/(.*)",

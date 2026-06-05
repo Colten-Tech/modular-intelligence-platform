@@ -13,7 +13,9 @@ import type {
   AdminOverview,
 } from '@/types'
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
+// In production (Vercel) requests go to /api/* which is proxied to Render via vercel.json rewrites.
+// In local dev, point to the local FastAPI server.
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '' : 'http://localhost:8000')
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const supabase = getSupabaseBrowserClient()
