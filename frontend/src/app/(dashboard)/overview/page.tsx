@@ -77,11 +77,14 @@ export default function OverviewPage() {
 
   function handleRunAll() {
     if (activeInstances.length === 0) return
-    activeInstances.forEach((inst) => {
+    // Stagger runs by 300ms to avoid concurrent getSession() auth-refresh races
+    activeInstances.forEach((inst, i) => {
       const def = modulesData?.definitions.find((d) => d.module_id === inst.module_type)
-      runModule({ instanceId: inst.id, moduleType: def?.display_name })
+      setTimeout(() => {
+        runModule({ instanceId: inst.id, moduleType: def?.display_name })
+      }, i * 300)
     })
-    toast.success(`Started ${activeInstances.length} module${activeInstances.length !== 1 ? 's' : ''}`)
+    toast.success(`Starting ${activeInstances.length} module${activeInstances.length !== 1 ? 's' : ''}…`)
   }
 
   return (

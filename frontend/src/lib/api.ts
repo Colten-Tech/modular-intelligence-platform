@@ -19,9 +19,14 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== 'undefine
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const supabase = getSupabaseBrowserClient()
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  let { data: { session } } = await supabase.auth.getSession()
+
+  // If session is null mid-refresh (concurrent calls race), wait briefly and retry once
+  if (!session?.access_token) {
+    await new Promise((r) => setTimeout(r, 500))
+    const retried = await supabase.auth.getSession()
+    session = retried.data.session
+  }
 
   if (!session?.access_token) {
     return { 'Content-Type': 'application/json' }
