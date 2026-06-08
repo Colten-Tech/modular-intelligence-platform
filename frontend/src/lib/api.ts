@@ -13,9 +13,14 @@ import type {
   AdminOverview,
 } from '@/types'
 
-// In production (Vercel) requests go to /api/* which is proxied to Render via vercel.json rewrites.
+// In production the browser calls Render directly (CORS is configured to allow *.vercel.app).
 // In local dev, point to the local FastAPI server.
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? (typeof window !== 'undefined' && window.location.hostname !== 'localhost' ? '' : 'http://localhost:8000')
+// NEXT_PUBLIC_API_URL can override this for custom deployments.
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? (
+  typeof window !== 'undefined' && window.location.hostname !== 'localhost'
+    ? 'https://mip-api-aehz.onrender.com'
+    : 'http://localhost:8000'
+)
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const supabase = getSupabaseBrowserClient()
